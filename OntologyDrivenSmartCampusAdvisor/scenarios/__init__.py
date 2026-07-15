@@ -3,7 +3,8 @@
 ================================
 
 提供 Scenario 协议类 + load_scenario 工厂,统一管理同一 Web 应用下
-的多个业务场景(如 Smart Campus 课程职业顾问、Warehouse 仓库管理)。
+的多个业务场景(如 Smart Campus 课程职业顾问、Warehouse 仓库管理、
+Procurement 采购管理)。
 
 每个场景封装为「Schema + ABox + Rules + Advisor」四件套:
 
@@ -15,10 +16,16 @@
             knowledge_base.py    ← ABox: build_warehouse_knowledge_base()
             rules.py             ← 业务推理规则 + RuleEngine 注册
             advisor.py           ← NLQ 路由 + answer_* + 8 阶段 pipeline
+        procurement/
+            __init__.py          ← 场景入口
+            ontology.py          ← TBox: SAP-like P2P Source-to-Award
+            knowledge_base.py    ← ABox: PR/PO/GR + 供应商/物料/信息记录
+            rules.py             ← 寻源/审批/价格偏离/逾期 8 条规则
+            advisor.py           ← NLQ 路由 + 7 意图
 
 调用方式:
     from scenarios import load_scenario
-    ctx = load_scenario("warehouse")  # 返回 ScenarioCtx
+    ctx = load_scenario("procurement")  # 返回 ScenarioCtx
     ctx.kg           # KnowledgeGraph
     ctx.engine       # RuleEngine
     ctx.intents      # 意图关键词表
@@ -35,7 +42,7 @@ from typing import Any, Callable
 class ScenarioCtx:
     """场景运行期上下文 —— 把 KG / Engine / NLQ 路由捆绑到一起。"""
 
-    name: str                      # "campus" | "warehouse"
+    name: str                      # "campus" | "warehouse" | "procurement"
     title: str                     # 显示标题
     subtitle: str                  # 副标题
     kg: Any                        # ontology.KnowledgeGraph
@@ -139,6 +146,39 @@ def _make_warehouse() -> ScenarioCtx:
     )
 
 
+def _make_procurement() -> ScenarioCtx:
+    from scenarios.procurement.knowledge_base import build_procurement_knowledge_base
+    from scenarios.procurement.ontology import (
+        PROCUREMENT_ENTITY_COLORS,
+        PROCUREMENT_ENTITY_SCHEMAS,
+        PROCUREMENT_RELATION_SCHEMAS,
+    )
+    from scenarios.procurement.rules import build_procurement_rules, RuleEngine
+    from scenarios.procurement.advisor import (
+        INTENT_KEYWORDS, ask as procurement_ask, EXAMPLE_QUESTIONS,
+    )
+
+    kg = build_procurement_knowledge_base()
+    engine = RuleEngine(kg)
+    for r in build_procurement_rules():
+        engine.register(r)
+    engine.forward_chain()
+
+    return ScenarioCtx(
+        name="procurement",
+        title="Procurement · SAP 采购管理智能体",
+        subtitle="Source-to-Award · 寻源 → PR → PO → GR 全链路追溯",
+        kg=kg, engine=engine,
+        intents=INTENT_KEYWORDS,
+        ask=procurement_ask,
+        example_questions=EXAMPLE_QUESTIONS,
+        entity_schemas=PROCUREMENT_ENTITY_SCHEMAS,
+        relation_schemas=PROCUREMENT_RELATION_SCHEMAS,
+        entity_colors=PROCUREMENT_ENTITY_COLORS,
+    )
+
+
 # 注册
 register_scenario("campus", _make_campus)
 register_scenario("warehouse", _make_warehouse)
+register_scenario("procurement", _make_procurement)

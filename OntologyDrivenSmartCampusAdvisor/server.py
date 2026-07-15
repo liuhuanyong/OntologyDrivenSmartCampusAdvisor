@@ -1,13 +1,15 @@
 """
 第 3 层(续): Web 服务器 (零依赖, 基于 http.server)
 ====================================================
-多场景版: 在同一 Web 应用中并存两个场景
+多场景版: 在同一 Web 应用中并存三个场景
   - /                  Smart Campus 课程职业规划顾问
   - /warehouse         Warehouse SAP 操作自动化智能体
+  - /procurement       Procurement SAP 采购管理智能体 (Source-to-Award)
 
 每个场景的 API 路径均带场景前缀:
   /api/campus/*        campus 场景
   /api/warehouse/*     warehouse 场景
+  /api/procurement/*   procurement 场景
 
 启动后访问 http://localhost:8772
 """
@@ -20,9 +22,10 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from scenarios import load_scenario
 
 
-# ---- 加载两个场景 ---- #
+# ---- 加载三个场景 ---- #
 CAMPUS = load_scenario("campus")
 WAREHOUSE = load_scenario("warehouse")
+PROCUREMENT = load_scenario("procurement")
 CAMPUS.engine.dump_rules_json("rules_store.json")
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -71,6 +74,21 @@ WAREHOUSE_EXAMPLES = [
     "成都仓怎么安排盘点？",
 ]
 
+PROCUREMENT_EXAMPLES = [
+    "帮我创建一个采购申请: 电子元件-主控芯片 STM32 2000 个",
+    "请购 1000 个 PCB 主板",
+    "有哪些采购申请还在审批中？",
+    "PR-2026-00001 现在到哪一步了？",
+    "帮我审批一下 PR-2026-00001",
+    "把 PR-2026-00003 转成采购订单",
+    "PO-2026-00789 现在什么状态？",
+    "审批 PO-2026-00792",
+    "哪些采购订单已逾期？",
+    "PO-2026-00790 的交货进度？",
+    "M1001 的最优供应商是谁？",
+    "物料 M1005 谁能供？",
+]
+
 
 class Handler(BaseHTTPRequestHandler):
     def _send_json(self, data, code=200):
@@ -91,7 +109,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _scenario_for(self, name: str):
-        return {"campus": CAMPUS, "warehouse": WAREHOUSE}.get(name)
+        return {"campus": CAMPUS, "warehouse": WAREHOUSE, "procurement": PROCUREMENT}.get(name)
 
     def _send_404(self, msg: str = "Not Found"):
         self.send_error(404, msg)
@@ -184,7 +202,14 @@ class Handler(BaseHTTPRequestHandler):
         if not ctx:
             self._send_404()
             return
-        examples = CAMPUS_EXAMPLES if scenario_name == "campus" else WAREHOUSE_EXAMPLES
+        if scenario_name == "campus":
+            examples = CAMPUS_EXAMPLES
+        elif scenario_name == "warehouse":
+            examples = WAREHOUSE_EXAMPLES
+        elif scenario_name == "procurement":
+            examples = PROCUREMENT_EXAMPLES
+        else:
+            examples = ctx.example_questions
         self._send_json({"examples": examples, "scenario": scenario_name})
 
     def _dispatch_ask(self, scenario_name: str, question: str):
@@ -210,6 +235,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/warehouse" or path == "/warehouse.html":
             self._send_file(os.path.join(STATIC_DIR, "warehouse.html"), "text/html; charset=utf-8")
+            return
+        if path == "/procurement" or path == "/procurement.html":
+            self._send_file(os.path.join(STATIC_DIR, "procurement.html"), "text/html; charset=utf-8")
             return
 
         # /api/<scenario>/<resource> 派发
@@ -300,10 +328,12 @@ def main():
     port = 8772
     server = ReusableHTTPServer(("0.0.0.0", port), Handler)
     print("  多场景 Web 服务已启动")
-    print(f"  Campus  场景: {CAMPUS.kg}  规则 {len(CAMPUS.engine.rules)} 条")
+    print(f"  Campus      场景: {CAMPUS.kg}  规则 {len(CAMPUS.engine.rules)} 条")
     print(f"  访问: http://localhost:{port}/")
-    print(f"  Warehouse 场景: {WAREHOUSE.kg}  规则 {len(WAREHOUSE.engine.rules)} 条")
+    print(f"  Warehouse   场景: {WAREHOUSE.kg}  规则 {len(WAREHOUSE.engine.rules)} 条")
     print(f"  访问: http://localhost:{port}/warehouse")
+    print(f"  Procurement 场景: {PROCUREMENT.kg}  规则 {len(PROCUREMENT.engine.rules)} 条")
+    print(f"  访问: http://localhost:{port}/procurement")
     print(f"  Ctrl+C 退出")
     try:
         server.serve_forever()
