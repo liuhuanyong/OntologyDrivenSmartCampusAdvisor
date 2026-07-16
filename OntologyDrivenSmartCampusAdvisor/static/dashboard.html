@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>本体推理仪表盘 · Ontology-Driven Smart Campus Advisor</title>
 <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
 /* ===== Reset & Base ===== */
 *{margin:0;padding:0;box-sizing:border-box}
@@ -274,6 +275,23 @@ body{
 .thinking-step .ts-icon{color:var(--accent);flex-shrink:0;margin-top:1px}
 .thinking-step .ts-text{color:var(--text-secondary)}
 .thinking-step .ts-result{color:var(--green);font-weight:600;margin-top:3px}
+
+/* Markdown 渲染样式 */
+.chat-bubble h1,.chat-bubble h2,.chat-bubble h3,.chat-bubble h4{margin:8px 0 4px;color:var(--text-primary);font-weight:600}
+.chat-bubble h1{font-size:15px}.chat-bubble h2{font-size:14px}.chat-bubble h3{font-size:13px}.chat-bubble h4{font-size:12px}
+.chat-bubble p{margin:4px 0}
+.chat-bubble ul,.chat-bubble ol{margin:6px 0;padding-left:20px}
+.chat-bubble li{margin:3px 0}
+.chat-bubble code{background:var(--bg-root);padding:2px 5px;border-radius:4px;font-size:11px;font-family:var(--font-mono);color:var(--accent)}
+.chat-bubble pre{background:var(--bg-root);padding:8px;border-radius:6px;overflow-x:auto;margin:6px 0}
+.chat-bubble pre code{background:none;padding:0;color:var(--text-primary)}
+.chat-bubble table{border-collapse:collapse;margin:8px 0;width:100%}
+.chat-bubble th,.chat-bubble td{border:1px solid var(--border);padding:5px 8px;text-align:left;font-size:11px}
+.chat-bubble th{background:var(--bg-panel-alt);font-weight:600;color:var(--accent)}
+.chat-bubble blockquote{border-left:3px solid var(--accent);padding-left:10px;margin:6px 0;color:var(--text-secondary)}
+.chat-bubble a{color:var(--accent);text-decoration:underline}
+.chat-bubble a:hover{color:var(--accent-hover)}
+.chat-bubble hr{border:none;border-top:1px solid var(--border);margin:10px 0}
 
 /* Chat Input */
 .chat-input-area{
@@ -594,7 +612,7 @@ body{
     <div class="stat-chip">规则 <span class="val" id="statRules">--</span></div>
     <div class="header-btns">
       <button class="header-btn active" id="btnCampus" onclick="switchScenario('campus')">Campus</button>
-      <button class="header-btn" id="btnWarehouse" onclick="switchScenario('warehouse')">Warehouse</button>
+      <!-- <button class="header-btn" id="btnWarehouse" onclick="switchScenario('warehouse')">Warehouse</button> -->
       <button class="header-btn" id="btnProcurement" onclick="switchScenario('procurement')">Procurement</button>
     </div>
   </div>
@@ -607,16 +625,16 @@ body{
   <div class="sidebar" id="sidebar">
 
     <!-- Panel 1: Cognitive Pipeline -->
-    <div class="sidebar-panel" id="pipelinePanel">
+    <!-- <div class="sidebar-panel" id="pipelinePanel">
       <div class="sidebar-panel-header">
         <span class="sp-icon">⚡</span>
         <span class="sp-title">认知流程管道</span>
         <span class="sp-badge" id="pipelineBadge">5 步</span>
       </div>
-      <div class="sp-body" id="pipelineBody">
+      <div class="sp-body" id="pipelineBody"> -->
         <!-- Rendered by JS -->
-      </div>
-    </div>
+      <!-- </div>
+    </div> -->
 
     <!-- Panel 4: Execution Simulation Chat -->
     <div class="sidebar-panel" id="chatPanel">
@@ -712,7 +730,7 @@ body{
 <!-- ==================== JAVASCRIPT ==================== -->
 <script>
 // ==================== CONFIG ====================
-const SCENARIO = new URLSearchParams(location.search).get('scenario') || 'campus';
+const SCENARIO = new URLSearchParams(location.search).get('scenario') || location.pathname.split('/')[2] || 'campus';
 let currentScenario = SCENARIO;
 
 // ==================== GLOBAL STATE ====================
@@ -960,8 +978,8 @@ async function loadStats() {
   try {
     const resp = await fetch(`/api/${currentScenario}/stats`);
     const data = await resp.json();
-    document.getElementById('statEntities').textContent = data.kg.nodes;
-    document.getElementById('statRelations').textContent = data.kg.edges;
+    document.getElementById('statEntities').textContent = data.kg.entities;
+    document.getElementById('statRelations').textContent = data.kg.relations;
     document.getElementById('statRules').textContent = data.rules;
   } catch(e) {
     document.getElementById('statEntities').textContent = '?';
@@ -1068,6 +1086,7 @@ function initLegend() {
 function renderPipeline(pipeline) {
   const body = document.getElementById('pipelineBody');
   const badge = document.getElementById('pipelineBadge');
+  if (!body || !badge) return;
   badge.textContent = `${pipeline.length} 步`;
   body.innerHTML = '<div class="pipeline-list">' +
     pipeline.map((p, i) => {
@@ -1175,23 +1194,35 @@ function appendChat(msg) {
   div.className = `chat-msg ${msg.role}`;
   let html = '';
   if (msg.role === 'system') {
-    html = `<span class="chat-bubble">${msg.content}</span>`;
+    html = `<span class="chat-bubble">${escapeHtml(msg.content)}</span>`;
   } else if (msg.role === 'user') {
     html = `<div class="chat-bubble">${escapeHtml(msg.content)}</div>`;
   } else {
     html = `<div class="chat-bubble">${formatAnswer(msg.content)}`;
     if (msg.thinking) {
-      html += `<div class="thinking-step"><span class="ts-icon">💭</span><div><span class="ts-text">${msg.thinking}</span></div></div>`;
+      html += `<div class="thinking-step"><span class="ts-icon">💭</span><div><span class="ts-text">${escapeHtml(msg.thinking)}</span></div></div>`;
     }
     html += '</div>';
   }
   div.innerHTML = html;
   body.appendChild(div);
   body.scrollTop = body.scrollHeight;
+  return div;
 }
 
+// 配置 marked.js
+marked.setOptions({
+  breaks: true,        // 自动转换换行符为 <br>
+  gfm: true,           // GitHub 风格 Markdown
+  headerIds: false,    // 禁用标题 ID（避免 XSS）
+  mangle: false,       // 禁用 Email 编码
+});
+
 function formatAnswer(text) {
-  return escapeHtml(text).replace(/\n/g, '<br>').replace(/📗|📘|📙|🏭|📍|🗄|📋|🔢|💰|📦/g, m => `<span style="color:var(--accent)">${m}</span>`);
+  if (!text) return '';
+  // 使用 marked.js 渲染 Markdown
+  const escaped = escapeHtml(text);
+  return marked.parse(escaped);
 }
 
 function escapeHtml(str) {
@@ -1442,14 +1473,17 @@ function renderSubGraphDynamic(subgraph, answerNodes) {
 // ==================== DO ASK (SSE 流式推理) ====================
 async function doAsk() {
   const input = document.getElementById('questionInput');
+  const askBtn = document.getElementById('askBtn');
   const question = input.value.trim();
-  if (!question) return;
+  if (!question || askBtn.disabled) return;
+  askBtn.disabled = true;
   input.value = '';
 
   appendChat({ role: 'user', content: question });
   appendChat({ role: 'system', content: '正在调用意图识别模块进行推理...' });
 
   let fullAnswer = '';
+  let responseBubble = null;
 
   try {
     const resp = await fetch(`/api/${currentScenario}/ask/stream?question=${encodeURIComponent(question)}`);
@@ -1485,26 +1519,51 @@ async function doAsk() {
             break;
           }
 
-          const content = event.data?.content || event.data?.delta || '';
+          // 兼容多种事件格式，提取 delta/content
+          const content = 
+            event.data?.delta || 
+            event.data?.content || 
+            event.delta || 
+            event.content || 
+            '';
+          
           if (content) {
             fullAnswer += content;
+            if (!responseBubble) {
+              responseBubble = appendChat({ role: 'assistant', content: '' }).querySelector('.chat-bubble');
+            }
+            const thinkingStep = responseBubble.querySelector('.thinking-step');
+            responseBubble.innerHTML = formatAnswer(fullAnswer) + (thinkingStep ? thinkingStep.outerHTML : '');
+            const chatBody = document.getElementById('chatBody');
+            chatBody.scrollTop = chatBody.scrollHeight;
           }
 
           if (event.data?.tool_calls?.length) {
-            const toolName = event.data.tool_calls[0].name;
-            appendChat({ role: 'assistant', content: '', thinking: `调用工具: ${toolName}` });
+            const toolName = escapeHtml(event.data.tool_calls[0].name);
+            if (!responseBubble) {
+              responseBubble = appendChat({ role: 'assistant', content: '' }).querySelector('.chat-bubble');
+            }
+            if (!responseBubble.querySelector('.thinking-step')) {
+              responseBubble.innerHTML += `<div class="thinking-step"><span class="ts-icon">💭</span><div><span class="ts-text">调用工具: ${toolName}</span></div></div>`;
+              document.getElementById('chatBody').scrollTop = document.getElementById('chatBody').scrollHeight;
+            }
           }
         } catch (e) {}
       }
     }
 
+    // 确保最终内容被正确显示
     if (fullAnswer) {
-      appendChat({ role: 'assistant', content: fullAnswer });
+      responseBubble = responseBubble || appendChat({ role: 'assistant', content: '' }).querySelector('.chat-bubble');
+      responseBubble.innerHTML = formatAnswer(fullAnswer);
     }
     showSubGraph();
 
   } catch (err) {
     appendChat({ role: 'system', content: `推理出错: ${err.message}` });
+  } finally {
+    askBtn.disabled = false;
+    input.focus();
   }
 }
 </script>

@@ -22,7 +22,6 @@ import os
 import sys
 import json
 import time
-import threading
 from pathlib import Path
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
@@ -39,11 +38,7 @@ def _log(msg: str, level: str = "INFO"):
         f.write(line)
     print(line, end="")  # 同时输出到终端
 
-import json
-import os
 import asyncio
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
 from dotenv import load_dotenv
@@ -237,11 +232,10 @@ class Handler(BaseHTTPRequestHandler):
     # AgentScope SSE 流式路由
     # ------------------------------------------------------------------ #
     def _dispatch_ask_stream(self, scenario_name: str, question: str):
-        """SSE 流式响应 - AgentScope Agent"""
+        """SSE 流式响应。"""
         _log(f"收到请求: scenario={scenario_name}, question={question[:50]}")
         ctx = self._scenario_for(scenario_name)
         if not ctx:
-            _log(f"场景未找到: {scenario_name}", "ERROR")
             self._send_404()
             return
 
@@ -253,80 +247,39 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
-        self.send_header("Connection", "keep-alive")
+        self.send_header("Connection", "close")  # 关闭 keep-alive
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
 
-        AGENT_IMPORTS = {
-            "campus": "scenarios.campus.agentscope_agent",
-            "procurement": "scenarios.procurement.agentscope_agent",
-        }
+        try:
+            module = __import__(
+                f"scenarios.{scenario_name}.agentscope_agent",
+                fromlist=["ask_with_agent_stream"],
+            )
 
-        def run_agent():
+            async def stream():
+                async for event in module.ask_with_agent_stream(question, ctx.kg, ctx.engine):
+                    data = json.dumps(event, ensure_ascii=False)
+                    self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+
+            asyncio.run(stream())
+        except Exception as e:
+            _log(f"Agent 执行失败: {e}", "ERROR")
+            import traceback; _log(traceback.format_exc(), "ERROR")
             try:
-                _log(f"启动 Agent: scenario={scenario_name}")
-                if scenario_name in AGENT_IMPORTS:
-                    module = __import__(AGENT_IMPORTS[scenario_name], fromlist=["ask_with_agent_stream"])
-                    ask_stream = module.ask_with_agent_stream
-                else:
-                    raise ImportError(f"No Agent for {scenario_name}")
+                data = json.dumps({"type": "error", "data": {"message": str(e)}}, ensure_ascii=False)
+                self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
+                self.wfile.flush()
+            except (OSError, BrokenPipeError, ConnectionResetError):
+                pass
+        finally:
+            try:
+                self.wfile.write(b'data: {"type": "done", "data": {}}\n\n')
+                self.wfile.flush()
+            except (OSError, BrokenPipeError, ConnectionResetError):
+                pass
 
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    async def iterate_stream():
-                        async for event in ask_stream(question, ctx.kg, ctx.engine):
-                            yield event
-                    gen = iterate_stream()
-                    while True:
-                        try:
-                            event = loop.run_until_complete(gen.__anext__())
-                            data = json.dumps(event, ensure_ascii=False)
-                            self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
-                            self.wfile.flush()
-                        except StopAsyncIteration:
-                            break
-                finally:
-                    loop.close()
-                    _log("Agent 执行完成")
-            except ImportError as e:
-                _log(f"AgentScope Agent 未实现，回退到非流式: {e}", "WARN")
-                try:
-                    result = ctx.ask(ctx.kg, ctx.engine, question)
-                    answer = result.get("answer", "处理完成")
-                    data = json.dumps({"type": "ReplyStartEvent", "data": {"class": "ReplyStartEvent"}}, ensure_ascii=False)
-                    self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
-                    for i in range(0, len(answer), 20):
-                        chunk = answer[i:i+20]
-                        data = json.dumps({"type": "TextDeltaEvent", "data": {"delta": chunk}}, ensure_ascii=False)
-                        self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
-                        self.wfile.flush()
-                    data = json.dumps({"type": "ReplyEndEvent", "data": {"class": "ReplyEndEvent"}}, ensure_ascii=False)
-                    self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
-                    self.wfile.flush()
-                except Exception as fallback_err:
-                    _log(f"回退失败: {fallback_err}", "ERROR")
-            except Exception as e:
-                _log(f"Agent 执行异常: {e}", "ERROR")
-                import traceback; _log(traceback.format_exc(), "ERROR")
-                try:
-                    self.wfile.write(f"data: {{\"type\": \"error\", \"data\": {{\"message\": \"{e}\"}}}}\\n\\n".encode("utf-8"))
-                    self.wfile.flush()
-                except:
-                    pass
-            finally:
-                try:
-                    self.wfile.write(b"data: {\"type\": \"done\", \"data\": {}}\n\n")
-                    self.wfile.flush()
-                except:
-                    pass
-
-        thread = threading.Thread(target=run_agent, daemon=True)
-        thread.start()
-
-    # ------------------------------------------------------------------ #
-    # 路由分发
-    # ------------------------------------------------------------------ #
     def do_GET(self):
         path = self.path
 
@@ -440,8 +393,9 @@ class Handler(BaseHTTPRequestHandler):
         pass  # 静默 HTTP 日志
 
 
-class ReusableHTTPServer(HTTPServer):
+class ReusableHTTPServer(ThreadingMixIn, HTTPServer):
     allow_reuse_address = True
+    daemon_threads = True
 
 
 def main():
