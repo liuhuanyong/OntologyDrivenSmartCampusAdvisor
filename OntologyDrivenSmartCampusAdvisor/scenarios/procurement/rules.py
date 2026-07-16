@@ -103,6 +103,10 @@ def rule_source_recommendation(kg: KnowledgeGraph, material: str,
         kg.mark_hop(material, "source_by", src.eid,
                     reason=f"候选货源 {src.attrs['source_id']} → {vendor_ent.label} "
                           f"(rating={rating}, fixed={fixed}, mrp={mrp})")
+        # 显式补一跳: Supplier → Material (supplies, 反向证据, 增强可视化)
+        kg.mark_hop(vendor_ent.eid, "supplies", material,
+                    reason=f"{vendor_ent.label} 主供 {mat_ent.label} "
+                          f"(lead_time/lead_time, MOQ)")
 
         candidates.append({
             "source": src.eid,
@@ -114,8 +118,6 @@ def rule_source_recommendation(kg: KnowledgeGraph, material: str,
             "mrp": mrp,
             "score": (4 - ord(rating[0]) + ord("A")) * 10 + (20 if fixed else 0) + (10 if mrp else 0),
         })
-
-    # 按评分降序
     candidates.sort(key=lambda x: -x["score"])
     if candidates:
         top = candidates[0]
@@ -140,7 +142,8 @@ def rule_plan_pr_creation(kg: KnowledgeGraph, material: str, quantity: int,
     mat_ent = kg.get_entity(material)
     if not mat_ent or mat_ent.etype != "Material":
         return {"material": material, "steps": [], "fallback": "物料不存在"}
-    steps.append({"step": 1, "phase": "物料校验", "result": "✓"})
+    steps.append({"step": 1, "phase": "物料校验", "result": "✓",
+                  "stage": "① 物料校验 ✓"})
 
     # Step 2: 选工厂 (未指定则取默认第一个)
     chosen_plant = plant
@@ -149,8 +152,10 @@ def rule_plan_pr_creation(kg: KnowledgeGraph, material: str, quantity: int,
         chosen_plant = plants[0].eid if plants else None
     if chosen_plant:
         kg.mark_hop(material, "belongs_to_plant", chosen_plant,
-                    reason=f"目标工厂 {_label(kg, chosen_plant)}")
-        steps.append({"step": 2, "phase": "工厂路由", "result": _label(kg, chosen_plant)})
+                    reason=f"② 工厂路由: 目标工厂 {_label(kg, chosen_plant)}")
+        steps.append({"step": 2, "phase": "工厂路由",
+                      "result": _label(kg, chosen_plant),
+                      "stage": f"② 工厂路由 → {_label(kg, chosen_plant)}"})
 
     # Step 3: 推荐库位 (按工厂查 StorageLocation)
     chosen_loc = None
@@ -160,32 +165,55 @@ def rule_plan_pr_creation(kg: KnowledgeGraph, material: str, quantity: int,
             chosen_loc = loc.eid
             break
     if chosen_loc:
-        steps.append({"step": 3, "phase": "库位匹配", "result": _label(kg, chosen_loc)})
+        # 可视化路径: 工厂 → 库位 (has_location)
+        kg.mark_hop(chosen_plant, "has_location", chosen_loc,
+                    reason=f"③ 库位匹配: {_label(kg, chosen_plant)} → {_label(kg, chosen_loc)}")
+        steps.append({"step": 3, "phase": "库位匹配",
+                      "result": _label(kg, chosen_loc),
+                      "stage": f"③ 库位匹配 → {_label(kg, chosen_loc)}"})
     else:
-        steps.append({"step": 3, "phase": "库位匹配", "result": "无活跃库位"})
+        steps.append({"step": 3, "phase": "库位匹配", "result": "无活跃库位",
+                      "stage": "③ 库位匹配 → 无活跃库位"})
 
     # Step 4: 复用 R1 推荐供应商
     src_plan = rule_source_recommendation(kg, material, chosen_plant)
     chosen_vendor = src_plan["recommendations"][0]["vendor"] if src_plan["recommendations"] else None
     if chosen_vendor:
+        top = src_plan["recommendations"][0]
+        # 显式补一跳: SourceList → 供应商 (sourced_from), 让推理路径经过货源清单
+        src_obj = top.get("source")
+        if src_obj:
+            kg.mark_hop(src_obj, "sourced_from", chosen_vendor,
+                        reason=f"⑤ 供应商寻源: 货源清单 {src_obj.split(':')[-1].upper()} "
+                               f"→ {kg.get_entity(chosen_vendor).label} "
+                               f"(rating={top['rating']}, score={top['score']})")
         steps.append({"step": 4, "phase": "供应商寻源",
                       "result": _label(kg, chosen_vendor),
-                      "score": src_plan["recommendations"][0]["score"]})
+                      "score": top["score"],
+                      "stage": f"④ 供应商寻源 → {kg.get_entity(chosen_vendor).label} "
+                               f"(评分 {top['score']})"})
 
     # Step 5: 价格校验 (取信息记录价格作为 PR 预估单价)
     ir_price = None
-    for ir in kg.out(material, "priced_by"):
-        ir_ent = kg.get_entity(ir.obj)
+    ir_eid = None
+    for r in kg.out(material, "priced_by"):
+        ir_ent = kg.get_entity(r.obj)
         if ir_ent:
             ir_price = ir_ent.attrs.get("net_price")
+            ir_eid = ir_ent.eid
             break
     if ir_price is None:
-        steps.append({"step": 5, "phase": "价格校验", "result": "无信息记录价格"})
+        steps.append({"step": 5, "phase": "价格校验", "result": "无信息记录价格",
+                      "stage": "⑤ 价格校验 → 无信息记录价格"})
     else:
         steps.append({"step": 5, "phase": "价格校验",
-                      "result": f"信息记录价 ¥{ir_price}"})
-        kg.mark_hop(material, "priced_by", material,
-                    reason=f"价格参考 ¥{ir_ent.attrs.get('net_price')}")
+                      "result": f"信息记录价 ¥{ir_price}",
+                      "stage": f"⑤ 价格校验 → 信息记录价 ¥{ir_price}"})
+        # 真实路径: Material → InfoRecord (而不是物料自环)
+        if ir_eid:
+            kg.mark_hop(material, "priced_by", ir_eid,
+                        reason=f"⑥ 价格校验: 信息记录 {ir_eid.split(':')[-1].upper()} "
+                               f"net_price=¥{ir_price}")
 
     # Step 6: 异常兜底
     fallback = None

@@ -184,6 +184,9 @@ PROCUREMENT_RELATION_SCHEMAS: dict[str, dict] = {
                               "edge": {}},
     "belongs_to_plant":      {"domain": "RequisitionItem", "range": "Plant",
                               "edge": {}},
+    # PR 创建流程推理链: Plant → 所属活跃库位 (可视化辅助)
+    "has_location":          {"domain": "Plant", "range": "StorageLocation",
+                              "edge": {"status": str}},
     "stored_at":             {"domain": "GoodsReceiptItem", "range": "StorageLocation",
                               "edge": {}},
 
@@ -196,6 +199,10 @@ PROCUREMENT_RELATION_SCHEMAS: dict[str, dict] = {
                               "edge": {"net_price": int}},
     "source_by":             {"domain": "Material", "range": "SourceList",
                               "edge": {"valid": bool}},
+    # PR 创建流程推理链: SourceList → 供应商 (可视化辅助)
+    "sourced_from":          {"domain": "SourceList", "range": "Supplier",
+                              "edge": {"rating": str, "fixed_flag": bool,
+                                       "mrp_flag": bool, "score": int}},
 
     # ---- 业务归属 ---- #
     "po_targets_vendor":     {"domain": "PurchaseOrder", "range": "Supplier",
@@ -269,11 +276,13 @@ RELATION_LABELS_CN: dict[str, str] = {
     "belongs_to_org":        "归属于采购组织",
     "belongs_to_group":      "归属于采购组",
     "belongs_to_plant":      "收货/需求工厂",
+    "has_location":          "工厂拥有库位",
     "stored_at":             "入库至库位",
     "supplies":              "供应商供货",
     "preferred_source":      "首选货源",
     "priced_by":             "价格取自信息记录",
     "source_by":             "货源来自货源清单",
+    "sourced_from":          "货源指向供应商",
     "po_targets_vendor":     "订单指定供应商",
     "po_item_targets_material": "订单行指定物料",
     "task_targets_pr":       "SOP 适用于 PR",

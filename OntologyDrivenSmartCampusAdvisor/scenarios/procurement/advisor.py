@@ -342,6 +342,18 @@ def answer_create_pr(kg: KnowledgeGraph, engine: RuleEngine,
         lines.append(f"兜底方案: {plan['fallback']}")
 
     involved = r1["trace"]["involved_entities"] | r2["trace"]["involved_entities"]
+    # mark_hop 不会触发 _record_walk, 因此 from/to 需要手工补到 involved
+    for rb in [r1, r2]:
+        for h in rb["trace"]["hops"]:
+            involved.add(h["subject"])
+            involved.add(h["object"])
+    # 显式补齐关键主数据: 货源清单 / 信息记录 节点 (R1/R2 trace 已覆盖来源, 这里冗余保险)
+    for src in kg.list_entities("SourceList"):
+        if src.attrs.get("material_id") == kg.get_entity(material).attrs.get("material_id"):
+            involved.add(src.eid)
+    for ir in kg.list_entities("InfoRecord"):
+        if ir.attrs.get("material_id") == kg.get_entity(material).attrs.get("material_id"):
+            involved.add(ir.eid)
     reasoning = [
         _build_reasoning_block(kg, engine, "R1_source_recommendation",
             goal=f"为 {mat_name} 推荐合格供应商",
@@ -354,7 +366,12 @@ def answer_create_pr(kg: KnowledgeGraph, engine: RuleEngine,
                        f"工厂={_label(kg, plan['plant']) if plan['plant'] else '无'}",
             traced_result=r2),
     ]
-    return {"answer": "\n".join(lines), "reasoning": reasoning, "involved": involved}
+    return {
+        "answer": "\n".join(lines),
+        "reasoning": reasoning,
+        "involved": involved,
+        "stages": [s.get("stage") for s in plan.get("steps", []) if s.get("stage")],
+    }
 
 
 def answer_source_recommendation(kg: KnowledgeGraph, engine: RuleEngine,
@@ -871,7 +888,14 @@ def ask(kg: KnowledgeGraph, engine: RuleEngine, question: str) -> dict:
 
     # 阶段5: 子图提取
     involved = set(result["involved"])
-    for eid in list(result["involved"]):
+    # 把推理 hops 的 from/to 也纳入 (mark_hop 不会触发 _record_walk)
+    for rb in result.get("reasoning", []):
+        for h in rb.get("hops", []):
+            involved.add(h["from"])
+            involved.add(h["to"])
+    for f in sum([rb.get("focus", []) for rb in result.get("reasoning", [])], []):
+        involved.add(f.get("id"))
+    for eid in list(involved):
         for r in kg.out(eid):
             involved.add(r.obj)
         for r in kg.inn(eid):
@@ -901,6 +925,7 @@ def ask(kg: KnowledgeGraph, engine: RuleEngine, question: str) -> dict:
         "answer_nodes": answer_nodes,
         "involved": list(involved),
         "subgraph": subgraph,
+        "stages": result.get("stages", []),
     }
 
 

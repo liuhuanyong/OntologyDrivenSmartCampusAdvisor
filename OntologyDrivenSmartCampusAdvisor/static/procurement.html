@@ -356,11 +356,13 @@ let activeEdgeId = null;
 const EDGE_COLORS = {
   // 组织关联
   'belongs_to_org':'#a78bfa','belongs_to_group':'#c4b5fd','belongs_to_plant':'#0ea5e9',
+  'has_location':'#22d3ee',
   // 单据关联
   'has_item':'#fbbf24','converts_to':'#f59e0b','has_po_item':'#60a5fa',
   'receipt_of':'#10b981','receipt_item_of':'#34d399','stored_at':'#06b6d4',
   // 寻源 / 价格主数据
   'supplies':'#8b5cf6','preferred_source':'#d946ef','priced_by':'#ec4899','source_by':'#d946ef',
+  'sourced_from':'#a855f7',
   // 业务归属
   'po_targets_vendor':'#8b5cf6','po_item_targets_material':'#f97316',
   // 任务编排 / 知识库
@@ -943,20 +945,30 @@ function displayResult(data) {
 
   // Trace info
   if (data.involved && data.involved.length > 0) {
+    const coreCount = (data.stages && data.stages.length) || allHops.length;
     html += `<div class="trace-info">
-      <b>涉及实体:</b> ${data.involved.length} 个 · <b>推理跳数:</b> ${allHops.length} 跳<br>
+      <b>业务阶段:</b> ${coreCount} 步 · <b>推理跳数:</b> ${allHops.length} 跳 · <b>子图实体:</b> ${data.involved.length} 个<br>
       ${answerNodeIds.size>0 ? `<b style="color:#b45309">答案节点: ${[...answerNodeIds].map(id=>{const n=fullGraphData.nodes.find(n=>n.id===id);return n?n.label:id}).join(', ')}</b><br>` : ''}
-      <span class="hint">→ 右侧图谱(层次布局)从起点开始逐步生长，最终答案节点以★金色星形标记</span>
+      <span class="hint">→ 右侧图谱(层次布局)默认展开全链路，答案节点以★金色星形标记</span>
     </div>`;
   }
   section.innerHTML = html;
 
-  // Switch to building mode
+  // Switch to building mode and 默认完整展开
   if (allHops.length > 0) {
     document.getElementById('hopNav').style.display = 'flex';
     initBuildingGraph();
     const firstFocus = focusByBlock[0] && focusByBlock[0][0];
     if (firstFocus) addNodeIncremental(firstFocus.id, {highlight:true});
+    // 默认完整展开, 让用户立即看到 "物料 → 工厂 → 库位 → 供应商 → 价格" 全链路
+    showAllHops();
+    // 在状态栏追加业务阶段摘要
+    const stageSummary = (data.stages || []).map(s => s.stage || `${s.phase} → ${s.result}`).join(' · ');
+    if (stageSummary) {
+      const statusEl = document.getElementById('graphStatus');
+      statusEl.innerHTML = statusEl.innerHTML
+        + `<br><span style="color:#0ea5e9">业务链路: ${stageSummary}</span>`;
+    }
     updateStepCounter();
   } else {
     document.getElementById('hopNav').style.display = 'none';

@@ -57,6 +57,10 @@ def build_procurement_knowledge_base() -> KnowledgeGraph:
     for eid, lid, pid, name, status in locations:
         kg.add_entity(eid, "StorageLocation", location_id=lid, name=name,
                       plant_id=pid, status=status)
+        # Plant → 库位 (可视化辅助关系, 仅对活跃库位)
+        if status == "active":
+            plant_eid = "plant:" + pid.lower()
+            kg.add_relation(plant_eid, "has_location", eid, status=status)
 
     # ========================================================== #
     # 3. 物料 Material (15)
@@ -163,6 +167,16 @@ def build_procurement_knowledge_base() -> KnowledgeGraph:
                       valid_from="2026-01-01",
                       valid_to="2026-12-31", fixed_flag=fixed, mrp_flag=mrp)
         kg.add_relation(mid, "source_by", eid, valid=True)
+        # SourceList → 供应商 (可视化辅助关系: 携带评分所需的 rating/fixed/mrp)
+        sup_ent = next((v for v in kg.list_entities("Supplier")
+                        if v.attrs.get("vendor_id", "").upper()
+                        == vid.split(":")[1].upper()), None)
+        if sup_ent:
+            score = (4 - ord(sup_ent.attrs.get("rating", "A")[0]) + ord("A")) * 10 \
+                    + (20 if fixed else 0) + (10 if mrp else 0)
+            kg.add_relation(eid, "sourced_from", sup_ent.eid,
+                            rating=sup_ent.attrs.get("rating"),
+                            fixed_flag=fixed, mrp_flag=mrp, score=score)
 
     # 供应商 -> 物料 (supplies, 反向)
     supplier_links = [
