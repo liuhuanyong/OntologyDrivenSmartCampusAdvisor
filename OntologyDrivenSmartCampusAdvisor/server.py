@@ -18,6 +18,27 @@
 """
 from __future__ import annotations
 
+import os
+import sys
+import json
+import time
+import threading
+from pathlib import Path
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from socketserver import ThreadingMixIn
+
+# 日志目录
+LOG_DIR = Path(__file__).parent / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+_log_file = LOG_DIR / "server.log"
+
+def _log(msg: str, level: str = "INFO"):
+    ts = time.strftime("%Y-%m-%d %H:%M:%S")
+    line = f"{ts} [{level}] {msg}\n"
+    with open(_log_file, "a", encoding="utf-8") as f:
+        f.write(line)
+    print(line, end="")  # 同时输出到终端
+
 import json
 import os
 import asyncio
@@ -33,9 +54,8 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 from scenarios import load_scenario
 
 
-# ---- 加载三个场景 ---- #
+# ---- 加载两个场景 ---- #
 CAMPUS = load_scenario("campus")
-WAREHOUSE = load_scenario("warehouse")
 PROCUREMENT = load_scenario("procurement")
 CAMPUS.engine.dump_rules_json("rules_store.json")
 
@@ -64,25 +84,6 @@ CAMPUS_EXAMPLES = [
     "给我看看 Grace 的完整画像",
     "Alice 的完整档案",
     "Eve 的情况如何？",
-]
-
-WAREHOUSE_EXAMPLES = [
-    "RM001 怎么安排入库？",
-    "锂电池 18650 现在收料走什么流程？",
-    "上海仓来了一批 PCB 主板如何上架？",
-    "总装车间要领 800 个主控芯片怎么发料？",
-    "客户服务中心需要 100 个电源适配器如何安排？",
-    "深圳电子市场订 500 台 A 型机怎么拣货？",
-    "上海仓的 PCB 主板怎么调到深圳仓？",
-    "原材料 ABS 塑胶粒在哪个工厂间调拨？",
-    "上海仓怎么安排盘点？",
-    "全部工厂的盘点策略是什么？",
-    "现在有哪些呆滞料？",
-    "识别高风险积压物料",
-    "哪些库存需要预警？",
-    "FG003 工业控制器如何入库？",
-    "化工原料-粘合剂需要冷链吗？",
-    "成都仓怎么安排盘点？",
 ]
 
 PROCUREMENT_EXAMPLES = [
@@ -120,7 +121,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _scenario_for(self, name: str):
-        return {"campus": CAMPUS, "warehouse": WAREHOUSE, "procurement": PROCUREMENT}.get(name)
+        return {"campus": CAMPUS, "procurement": PROCUREMENT}.get(name)
 
     def _send_404(self, msg: str = "Not Found"):
         self.send_error(404, msg)
@@ -215,8 +216,6 @@ class Handler(BaseHTTPRequestHandler):
             return
         if scenario_name == "campus":
             examples = CAMPUS_EXAMPLES
-        elif scenario_name == "warehouse":
-            examples = WAREHOUSE_EXAMPLES
         elif scenario_name == "procurement":
             examples = PROCUREMENT_EXAMPLES
         else:
@@ -239,17 +238,18 @@ class Handler(BaseHTTPRequestHandler):
     # ------------------------------------------------------------------ #
     def _dispatch_ask_stream(self, scenario_name: str, question: str):
         """SSE 流式响应 - AgentScope Agent"""
+        _log(f"收到请求: scenario={scenario_name}, question={question[:50]}")
         ctx = self._scenario_for(scenario_name)
         if not ctx:
+            _log(f"场景未找到: {scenario_name}", "ERROR")
             self._send_404()
             return
 
-        # 检查 API Key
         if not os.environ.get("DEEPSEEK_API_KEY"):
+            _log("DEEPSEEK_API_KEY 未配置", "ERROR")
             self._send_json({"error": "DEEPSEEK_API_KEY 未配置，请在 .env 中设置"}, 500)
             return
 
-        # 发送 SSE 头
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
@@ -257,42 +257,64 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
 
-        # 在后台线程中运行异步 Agent
+        AGENT_IMPORTS = {
+            "campus": "scenarios.campus.agentscope_agent",
+            "procurement": "scenarios.procurement.agentscope_agent",
+        }
+
         def run_agent():
             try:
-                from scenarios.procurement.agentscope_agent import ask_with_agent_stream
+                _log(f"启动 Agent: scenario={scenario_name}")
+                if scenario_name in AGENT_IMPORTS:
+                    module = __import__(AGENT_IMPORTS[scenario_name], fromlist=["ask_with_agent_stream"])
+                    ask_stream = module.ask_with_agent_stream
+                else:
+                    raise ImportError(f"No Agent for {scenario_name}")
 
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
-                    # 将 async generator 转换为同步迭代器
                     async def iterate_stream():
-                        async for event in ask_with_agent_stream(question, ctx.kg, ctx.engine):
+                        async for event in ask_stream(question, ctx.kg, ctx.engine):
                             yield event
-
                     gen = iterate_stream()
-                    try:
-                        while True:
-                            try:
-                                event = loop.run_until_complete(gen.__anext__())
-                                data = json.dumps(event, ensure_ascii=False)
-                                self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
-                                self.wfile.flush()
-                            except StopAsyncIteration:
-                                break
-                    finally:
-                        pass  # gen 会在循环结束时自动清理
+                    while True:
+                        try:
+                            event = loop.run_until_complete(gen.__anext__())
+                            data = json.dumps(event, ensure_ascii=False)
+                            self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
+                            self.wfile.flush()
+                        except StopAsyncIteration:
+                            break
                 finally:
                     loop.close()
-            except Exception as e:
-                error_data = json.dumps({"type": "error", "data": {"message": str(e)}}, ensure_ascii=False)
+                    _log("Agent 执行完成")
+            except ImportError as e:
+                _log(f"AgentScope Agent 未实现，回退到非流式: {e}", "WARN")
                 try:
-                    self.wfile.write(f"data: {error_data}\n\n".encode("utf-8"))
+                    result = ctx.ask(ctx.kg, ctx.engine, question)
+                    answer = result.get("answer", "处理完成")
+                    data = json.dumps({"type": "ReplyStartEvent", "data": {"class": "ReplyStartEvent"}}, ensure_ascii=False)
+                    self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
+                    for i in range(0, len(answer), 20):
+                        chunk = answer[i:i+20]
+                        data = json.dumps({"type": "TextDeltaEvent", "data": {"delta": chunk}}, ensure_ascii=False)
+                        self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
+                        self.wfile.flush()
+                    data = json.dumps({"type": "ReplyEndEvent", "data": {"class": "ReplyEndEvent"}}, ensure_ascii=False)
+                    self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+                except Exception as fallback_err:
+                    _log(f"回退失败: {fallback_err}", "ERROR")
+            except Exception as e:
+                _log(f"Agent 执行异常: {e}", "ERROR")
+                import traceback; _log(traceback.format_exc(), "ERROR")
+                try:
+                    self.wfile.write(f"data: {{\"type\": \"error\", \"data\": {{\"message\": \"{e}\"}}}}\\n\\n".encode("utf-8"))
                     self.wfile.flush()
                 except:
                     pass
             finally:
-                # 发送结束标记
                 try:
                     self.wfile.write(b"data: {\"type\": \"done\", \"data\": {}}\n\n")
                     self.wfile.flush()
@@ -311,9 +333,6 @@ class Handler(BaseHTTPRequestHandler):
         # 静态页面
         if path == "/" or path == "/index.html":
             self._send_file(os.path.join(STATIC_DIR, "index.html"), "text/html; charset=utf-8")
-            return
-        if path == "/warehouse" or path == "/warehouse.html":
-            self._send_file(os.path.join(STATIC_DIR, "warehouse.html"), "text/html; charset=utf-8")
             return
         if path == "/procurement" or path == "/procurement.html":
             self._send_file(os.path.join(STATIC_DIR, "procurement.html"), "text/html; charset=utf-8")
@@ -418,7 +437,7 @@ class Handler(BaseHTTPRequestHandler):
         self._send_404()
 
     def log_message(self, *args):
-        pass  # 静默日志
+        pass  # 静默 HTTP 日志
 
 
 class ReusableHTTPServer(HTTPServer):
@@ -426,15 +445,13 @@ class ReusableHTTPServer(HTTPServer):
 
 
 def main():
+    _log("=== 服务启动 ===")
     port = 8772
     server = ReusableHTTPServer(("0.0.0.0", port), Handler)
     print("  多场景 Web 服务已启动")
     print(f"  Campus      场景: {CAMPUS.kg}  规则 {len(CAMPUS.engine.rules)} 条")
     print(f"  访问: http://localhost:{port}/")
     print(f"  访问 (新仪表盘): http://localhost:{port}/dashboard/campus")
-    print(f"  Warehouse   场景: {WAREHOUSE.kg}  规则 {len(WAREHOUSE.engine.rules)} 条")
-    print(f"  访问: http://localhost:{port}/warehouse")
-    print(f"  访问 (新仪表盘): http://localhost:{port}/dashboard/warehouse")
     print(f"  Procurement 场景: {PROCUREMENT.kg}  规则 {len(PROCUREMENT.engine.rules)} 条")
     print(f"  访问: http://localhost:{port}/procurement")
     print(f"  访问 (新仪表盘): http://localhost:{port}/dashboard/procurement")

@@ -586,7 +586,7 @@ body{
   <div class="header-left">
     <div class="header-icon">🧠</div>
     <h1>本体推理仪表盘<span>· Ontology-Driven Smart Campus Advisor</span></h1>
-    <span class="header-subtitle" id="scenarioLabel">Campus · 智慧校园课程与职业规划</span>
+    <span class="header-subtitle" id="scenarioLabel">Procurement · SAP 采购管理智能体</span>
   </div>
   <div class="header-right">
     <div class="stat-chip">实体 <span class="val" id="statEntities">--</span></div>
@@ -632,7 +632,7 @@ body{
         </div>
       </div>
       <div class="chat-input-area">
-        <input type="text" id="questionInput" placeholder="例如：Alice 下学期该修什么课？" onkeydown="if(event.key==='Enter')doAsk()" />
+        <input type="text" id="questionInput" placeholder="例如：有哪些采购申请还在审批中？ " onkeydown="if(event.key==='Enter')doAsk()" />
         <button class="chat-send-btn" id="askBtn" onclick="doAsk()">▶</button>
       </div>
     </div>
@@ -1322,48 +1322,6 @@ function toggleAutoPlay() {
   }
 }
 
-// ==================== DO ASK (核心入口) ====================
-async function doAsk() {
-  const input = document.getElementById('questionInput');
-  const question = input.value.trim();
-  if (!question) return;
-  input.value = '';
-
-  // Add user message
-  appendChat({ role: 'user', content: question });
-
-  // Show loading
-  appendChat({ role: 'system', content: '正在分析用户意图并执行推理...' });
-
-  // Get mock data for current scenario
-  const mock = MOCK_DATA[currentScenario];
-
-  // Simulate agent thinking steps
-  await delay(400);
-  appendChat({ role: 'assistant', content: '让我来分析您的问题...', thinking: '正在调用意图识别模块...' });
-  await delay(600);
-
-  // Update all 5 panels
-  renderPipeline(mock.pipeline);
-  renderPlan(mock.plan);
-  renderEvidence(mock.evidence);
-
-  // Add chat messages
-  for (const msg of mock.chat) {
-    if (msg.role === 'system' || msg.role === 'assistant') {
-      appendChat(msg);
-      await delay(300);
-    }
-  }
-
-  // Switch to subgraph view
-  showSubGraph();
-}
-
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 // ==================== SCENARIO SWITCHING ====================
 function switchScenario(scenario) {
   currentScenario = scenario;
@@ -1385,6 +1343,169 @@ function switchScenario(scenario) {
 
   // Reset graph mode
   showFullGraph();
+}
+
+// ==================== API DATA MAPPING ====================
+/**
+ * 将后端 /api/<scenario>/ask 的响应映射为各面板的入参格式。
+ * 后端字段 → dashboard render 函数字段的桥梁。
+ */
+function mapApiResponseToPanels(data) {
+  // rule_flow: 后端编排规则列表 → plan 面板需要的 {step,action,desc,preconditions,postconditions,status}
+  const plan = (data.rule_flow || []).map((rf, i) => ({
+    step: i + 1,
+    action: rf.rule,
+    desc: rf.chinese || rf.rule,
+    preconditions: rf.depends_on || [],
+    postconditions: [],  // 后端未返回，按 pass 处理
+    status: 'pass',      // 规则已执行成功
+  }));
+
+  // reasoning: 后端推理块列表 → evidence 面板需要的 {rule, ruleLabel, conclusion, facts}
+  const evidence = (data.reasoning || []).map(r => ({
+    rule: r.rule,
+    ruleLabel: r.rule_desc || '',
+    conclusion: r.conclusion || '',
+    facts: (r.hops || []).map(h => ({
+      from: h.from_label || h.from,
+      pred: h.predicate,
+      to: h.to_label || h.to,
+      reason: h.reason || '',
+      status: h.passed !== false ? 'pass' : 'fail',
+    })),
+  }));
+
+  // 聚合所有 hops 用于图谱导航
+  const allHops = (data.reasoning || []).flatMap(r => r.hops || []);
+
+  // subgraph: 后端直接返回 {nodes, edges}，与 MOCK_DATA.graphNodes/graphEdges 同结构
+  return {
+    pipeline: data.pipeline || [],
+    plan,
+    evidence,
+    allHops,
+    subgraph: data.subgraph || { nodes: [], edges: [] },
+    answer: data.answer || '',
+    answerNodes: data.answer_nodes || [],
+  };
+}
+
+// ==================== SUBGRAPH FROM API ====================
+function renderSubGraphDynamic(subgraph, answerNodes) {
+  if (!subgraph || !subgraph.nodes || !subgraph.edges) {
+    renderSubGraph({ graphNodes: [], graphEdges: [] });
+    return;
+  }
+
+  const answerSet = new Set(answerNodes);
+
+  const nodes = subgraph.nodes.map(n => ({
+    id: n.id, label: n.label || n.id,
+    color: {
+      background: n.color || '#4a5568',
+      border: answerSet.has(n.id) ? '#f6ad55' : (n.color || '#4a5568'),
+      highlight: { background: '#fff', border: answerSet.has(n.id) ? '#f6ad55' : '#7c6af7' },
+    },
+    font: { color: '#e8eaf6', size: 11 },
+    borderWidth: answerSet.has(n.id) ? 3 : 2,
+    shape: answerSet.has(n.id) ? 'star' : 'dot',
+    size: n.type === 'Student' || n.type === 'Material' ? 16 : 13,
+  }));
+
+  const edges = subgraph.edges.map((e, i) => ({
+    id: 'e' + i, from: e.from, to: e.to, label: e.label || '',
+    color: { color: e.color || '#7c6af7', highlight: '#fff', hover: '#fff' },
+    font: { color: '#9ba3c2', size: 9, strokeWidth: 0 },
+    arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+    dashes: false,
+  }));
+
+  const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+  const options = {
+    physics: { enabled: false },
+    interaction: { hover: true },
+    nodes: { shadow: { enabled: true, color: 'rgba(0,0,0,0.4)', size: 4, x: 2, y: 2 } },
+    layout: { improvedLayout: true },
+  };
+
+  if (network) { network.destroy(); network = null; }
+  nodeDataSet = data.nodes;
+  edgeDataSet = data.edges;
+  network = new vis.Network(document.getElementById('mynetwork'), data, options);
+  network.on('click', function(params) {
+    if (params.nodes.length) {
+      showNodeInfo(params.nodes[0]);
+    }
+  });
+}
+
+// ==================== DO ASK (SSE 流式推理) ====================
+async function doAsk() {
+  const input = document.getElementById('questionInput');
+  const question = input.value.trim();
+  if (!question) return;
+  input.value = '';
+
+  appendChat({ role: 'user', content: question });
+  appendChat({ role: 'system', content: '正在调用意图识别模块进行推理...' });
+
+  let fullAnswer = '';
+
+  try {
+    const resp = await fetch(`/api/${currentScenario}/ask/stream?question=${encodeURIComponent(question)}`);
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: '网络错误' }));
+      appendChat({ role: 'system', content: `推理出错: ${err.error || resp.status}` });
+      return;
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split('\n');
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const jsonStr = line.slice(6);
+        if (!jsonStr) continue;
+
+        try {
+          const event = JSON.parse(jsonStr);
+
+          if (event.type === 'done' || event.type === 'error') {
+            if (event.type === 'error') {
+              appendChat({ role: 'system', content: `推理出错: ${event.data?.message || '未知错误'}` });
+            }
+            break;
+          }
+
+          const content = event.data?.content || event.data?.delta || '';
+          if (content) {
+            fullAnswer += content;
+          }
+
+          if (event.data?.tool_calls?.length) {
+            const toolName = event.data.tool_calls[0].name;
+            appendChat({ role: 'assistant', content: '', thinking: `调用工具: ${toolName}` });
+          }
+        } catch (e) {}
+      }
+    }
+
+    if (fullAnswer) {
+      appendChat({ role: 'assistant', content: fullAnswer });
+    }
+    showSubGraph();
+
+  } catch (err) {
+    appendChat({ role: 'system', content: `推理出错: ${err.message}` });
+  }
 }
 </script>
 </body>
