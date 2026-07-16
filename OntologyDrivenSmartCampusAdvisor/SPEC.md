@@ -19,7 +19,9 @@
 
 ## Interfaces and Data
 
-Record stable interfaces and important data structures.
+- `/api/<scenario>/ask/stream` 在 AgentScope Tool 完成后发送 `KGTraceEvent`。`data` 固定包含 `schema_version=1`、`scenario`、`question`、`tool_call_id`、`tool_name`、`tool_input`、`intent`、`status`、`kg_answer`、`rule_flow`、`reasoning`、`answer_nodes`、`subgraph`。
+- Tool 返回单个 JSON `TextBlock`，其中 `kg_answer` 供模型回答，`kg_trace` 供 SSE、Dashboard 和 Eval 使用。Dashboard 不从模型正文解析推理证据。
+- Campus 提供 `campus_reason` Typed Tool 和 `campus_graph_query` 通用只读 Tool；通用查询最多返回 100 条。Procurement 保留业务 Typed Tools。
 
 ## Troubleshooting
 
@@ -39,6 +41,15 @@ Record stable interfaces and important data structures.
 - Verification: 在真实 Campus Dashboard 依次询问 Alice、Bob、Eve，得到 3 个独立助手气泡；后续轮次完成后，前两轮文本逐字保持不变。
 - Related task, files, or commit: ODSA-002；`static/dashboard.html`。
 
+### Tool 报错 `does not implement __call__` 且计划/证据面板为空
+
+- Environment: AgentScope ReActAgent 流式调用 Campus 或 Procurement Tool。
+- Cause: 场景 Tool 只实现了旧的 `call` 方法，当前 AgentScope 通过 `__call__` 执行；同时 SSE 只透传模型文本，Dashboard 无法获得结构化 KG 计划和证据。
+- Resolution: Tool 基类实现 `__call__` 并返回统一 JSON；服务端按 `tool_call_id` 缓冲 Tool 结果并发送 `KGTraceEvent`；Dashboard 按调用顺序聚合 `rule_flow`、`reasoning` 和推理子图。
+- Verification: Campus 规则推理、教授实体查询和 Procurement 货源推荐均产生非空 Trace；写 Tool 单次执行测试通过；未调用 Tool 时面板显示明确失败提示。
+- Related task, files, or commit: ODSA-003；`scenarios/*/agentscope_agent.py`、`static/dashboard.html`、`test_kg_tools.py`。
+
 ## Technical Decisions
 
-Record decisions that remain relevant to future development or troubleshooting.
+- LLM 负责选择 Tool 和填写业务参数；KG 负责确定性事实、规则执行和证据链；最终回答必须以 Tool 结果为事实边界。
+- 同一轮多个 `KGTraceEvent` 按 `tool_call_id` 和到达顺序聚合。当前只提供稳定 Trace 契约，不持久化 Eval 数据，也不记录模型隐藏思维链。

@@ -1382,19 +1382,20 @@ function switchScenario(scenario) {
  * 后端字段 → dashboard render 函数字段的桥梁。
  */
 function mapApiResponseToPanels(data) {
+  const executedRules = new Set((data.reasoning || []).map(r => r.rule));
   // rule_flow: 后端编排规则列表 → plan 面板需要的 {step,action,desc,preconditions,postconditions,status}
   const plan = (data.rule_flow || []).map((rf, i) => ({
     step: i + 1,
-    action: rf.rule,
+    action: data.tool_name ? `${data.tool_name} · ${rf.rule}` : rf.rule,
     desc: rf.chinese || rf.rule,
     preconditions: rf.depends_on || [],
-    postconditions: [],  // 后端未返回，按 pass 处理
-    status: 'pass',      // 规则已执行成功
+    postconditions: (data.reasoning || []).filter(r => r.rule === rf.rule).map(r => r.conclusion).filter(Boolean),
+    status: data.status === 'error' ? 'fail' : executedRules.has(rf.rule) ? 'pass' : 'pending',
   }));
 
   // reasoning: 后端推理块列表 → evidence 面板需要的 {rule, ruleLabel, conclusion, facts}
   const evidence = (data.reasoning || []).map(r => ({
-    rule: r.rule,
+    rule: data.tool_name ? `${data.tool_name} · ${r.rule}` : r.rule,
     ruleLabel: r.rule_desc || '',
     conclusion: r.conclusion || '',
     facts: (r.hops || []).map(h => ({
@@ -1419,6 +1420,16 @@ function mapApiResponseToPanels(data) {
     answer: data.answer || '',
     answerNodes: data.answer_nodes || [],
   };
+}
+
+function mergeTraceSubgraphs(traces) {
+  const nodes = new Map();
+  const edges = new Map();
+  traces.forEach(t => {
+    (t.subgraph?.nodes || []).forEach(n => nodes.set(n.id, n));
+    (t.subgraph?.edges || []).forEach(e => edges.set(`${e.from}|${e.label}|${e.to}`, e));
+  });
+  return { nodes: [...nodes.values()], edges: [...edges.values()] };
 }
 
 // ==================== SUBGRAPH FROM API ====================
@@ -1481,9 +1492,12 @@ async function doAsk() {
 
   appendChat({ role: 'user', content: question });
   appendChat({ role: 'system', content: '正在调用意图识别模块进行推理...' });
+  renderPlan([]);
+  renderEvidence([]);
 
   let fullAnswer = '';
   let responseBubble = null;
+  const kgTraces = [];
 
   try {
     const resp = await fetch(`/api/${currentScenario}/ask/stream?question=${encodeURIComponent(question)}`);
@@ -1496,15 +1510,18 @@ async function doAsk() {
 
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
+    let sseBuffer = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
+      sseBuffer += decoder.decode(value, { stream: true });
+      const messages = sseBuffer.split('\n\n');
+      sseBuffer = messages.pop();
 
-      for (const line of lines) {
+      for (const message of messages) {
+        for (const line of message.split('\n')) {
         if (!line.startsWith('data: ')) continue;
         const jsonStr = line.slice(6);
         if (!jsonStr) continue;
@@ -1519,13 +1536,33 @@ async function doAsk() {
             break;
           }
 
-          // 兼容多种事件格式，提取 delta/content
-          const content = 
+          if (event.type === 'KGTraceEvent') {
+            kgTraces.push(event.data);
+            const panels = kgTraces.map(mapApiResponseToPanels);
+            renderPlan(panels.flatMap(p => p.plan));
+            renderEvidence(panels.flatMap(p => p.evidence));
+            allHops = panels.flatMap(p => p.allHops);
+            const subgraph = mergeTraceSubgraphs(kgTraces);
+            const answerNodes = kgTraces.flatMap(t => t.answer_nodes || []);
+            if (subgraph.nodes.length) {
+              graphMode = 'subgraph';
+              document.getElementById('btnFullGraph').classList.remove('active');
+              document.getElementById('btnSubGraph').classList.add('active');
+              document.getElementById('hopsNav').style.display = 'flex';
+              document.getElementById('graphLegend').style.display = 'none';
+              document.getElementById('graphStatus').innerHTML = `图谱模式: <b>KG 推理路径</b> (${subgraph.nodes.length} 节点)`;
+              renderSubGraphDynamic(subgraph, answerNodes);
+            }
+            continue;
+          }
+
+          const content = event.type === 'TextDeltaEvent' ? (
             event.data?.delta || 
             event.data?.content || 
             event.delta || 
             event.content || 
-            '';
+            ''
+          ) : '';
           
           if (content) {
             fullAnswer += content;
@@ -1538,8 +1575,9 @@ async function doAsk() {
             chatBody.scrollTop = chatBody.scrollHeight;
           }
 
-          if (event.data?.tool_calls?.length) {
-            const toolName = escapeHtml(event.data.tool_calls[0].name);
+          const toolNameRaw = event.data?.tool_call_name || event.tool_call_name || event.data?.tool_calls?.[0]?.name;
+          if (event.type === 'ToolCallStartEvent' && toolNameRaw) {
+            const toolName = escapeHtml(toolNameRaw);
             if (!responseBubble) {
               responseBubble = appendChat({ role: 'assistant', content: '' }).querySelector('.chat-bubble');
             }
@@ -1548,7 +1586,8 @@ async function doAsk() {
               document.getElementById('chatBody').scrollTop = document.getElementById('chatBody').scrollHeight;
             }
           }
-        } catch (e) {}
+        } catch (e) { console.error('SSE 事件解析失败', e); }
+        }
       }
     }
 
@@ -1557,7 +1596,10 @@ async function doAsk() {
       responseBubble = responseBubble || appendChat({ role: 'assistant', content: '' }).querySelector('.chat-bubble');
       responseBubble.innerHTML = formatAnswer(fullAnswer);
     }
-    showSubGraph();
+    if (!kgTraces.length) {
+      document.getElementById('planBody').innerHTML = '<div style="text-align:center;color:var(--red);font-size:12px;margin-top:20px">本轮未调用 KG Tool</div>';
+      document.getElementById('evidenceBody').innerHTML = '<div style="text-align:center;color:var(--red);font-size:12px;margin-top:20px">本轮无 KG 推理证据</div>';
+    }
 
   } catch (err) {
     appendChat({ role: 'system', content: `推理出错: ${err.message}` });

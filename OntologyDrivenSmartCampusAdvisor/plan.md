@@ -4,6 +4,21 @@
 
 ## Done
 
+[ODSA-003][problem] KG Tool 推理链未进入 Dashboard 面板
+
+Goal or symptom: AgentScope Tool 未实现当前版本要求的 `__call__`，KG 推理没有执行；SSE 也未输出结构化规则计划和证据，导致执行计划与论证面板为空。
+Acceptance scenarios:
+- [x] Given Campus 规则问题，when LLM 调用 Typed KG Tool，then Tool 返回结构化 Trace，最终回答基于 KG，两个面板均有数据。
+- [x] Given “有哪些教授”，when LLM 调用通用只读图查询，then 返回实体查询计划与证据，数量最多 100 条。
+- [x] Given Procurement 查询或写操作，when LLM 动态组装参数调用 Tool，then Trace 可评测且写操作只执行一次。
+- [x] Given 一轮调用多个 Tool，when SSE 逐个返回 Trace，then Dashboard 按 tool_call_id 和调用顺序聚合。
+- [x] Given 模型未调用 KG Tool，when 回答结束，then 两个面板明确显示本轮未调用 KG Tool。
+- [x] Given 非流式 `/api/<scenario>/ask`，when 原有客户端调用，then 返回结构保持兼容。
+Acceptance confirmed: 2026-07-16 用户要求实施已确认计划。
+Result: 修复 Tool 协议；增加 Campus Typed/通用图 Tool；统一 KG Trace 并接入 SSE、计划、证据和推理子图。真实模型与浏览器均已验证。
+Documents: `SPEC.md` 的 Interfaces and Data、Technical Decisions；`SYSTEM.md` 的 Capability Map、User Scenarios。
+Related files or commit: `scenarios/*/agentscope_agent.py`、`scenarios/procurement/advisor.py`、`static/dashboard.html`、`test_kg_tools.py`。
+
 [ODSA-002][problem] 新一轮流式回答覆盖上一轮聊天内容
 
 Goal or symptom: 连续聊天时，新一轮响应错误复用上一轮助手气泡，导致历史答案被覆盖。

@@ -61,6 +61,11 @@ INTENT_KEYWORDS: dict[str, list[str]] = {
 
 # 各意图的规则编排
 RULE_FLOWS: dict[str, list[dict]] = {
+    "source_recommendation": [
+        {"rule": "R1_source_recommendation", "depends_on": [],
+         "chinese": "按物料 + 工厂查询货源清单并推荐合格供应商",
+         "why": "SourceList 是采购寻源的合规依据"},
+    ],
     "create_pr": [
         {"rule": "R1_source_recommendation", "depends_on": [],
          "chinese": "按物料 + 工厂查询货源清单, 推荐合格供应商",

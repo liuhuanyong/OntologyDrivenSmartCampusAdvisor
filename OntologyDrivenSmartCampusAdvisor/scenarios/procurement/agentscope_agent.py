@@ -13,6 +13,7 @@ Procurement AgentScope Agent
 """
 import os
 import asyncio
+import json
 import time
 from pathlib import Path
 from typing import Any, AsyncGenerator
@@ -32,14 +33,6 @@ def _log(msg: str, level: str = "INFO"):
     line = f"{ts} [{level}] {msg}"
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(line + "\n")
-
-# AgentScope 核心
-from agentscope.agent import Agent
-from agentscope.model import DeepSeekChatModel
-from agentscope.credential import DeepSeekCredential
-from agentscope.tool import Toolkit, ToolBase, ToolChunk
-from agentscope.message import Msg, TextBlock, UserMsg
-from agentscope.permission import PermissionContext, PermissionDecision, PermissionBehavior
 
 # 从 .env 读取 API Key
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
@@ -85,6 +78,11 @@ SYSTEM_PROMPT = """你是采购管理智能体。基于采购业务本体模型�
 - PR: PR-2026-XXXXX
 - PO: PO-2026-XXXXX
 - 物料: M1001, M1002
+
+【工具使用约束】
+- 采购事实和业务操作必须先调用对应 Typed Tool，由你填写单号、物料、数量、工厂等参数。
+- 最终回答必须以工具返回的 KG 事实与规则证据为准，不得重复执行写操作。
+- 不要向用户原样输出工具 JSON；证据不足时明确说明，不得虚构。
 """
 
 
@@ -108,20 +106,50 @@ class ProcurementToolBase(ToolBase):
         except Exception:
             return PermissionDecision(behavior=PermissionBehavior.ALLOW, message="")
 
-    async def call(self, **kwargs) -> ToolChunk:
+    async def __call__(self, **kwargs) -> ToolChunk:
         """包装所有工具调用，捕获异常"""
         try:
             _log(f"工具调用开始: {kwargs}")
             result = await self._execute(**kwargs)
             _log(f"工具调用成功")
-            return result
+            return self._trace_chunk(result, kwargs)
         except Exception as e:
             _log(f"工具调用异常: {e}", "ERROR")
-            return ToolChunk(content=[TextBlock(text=f"工具执行出错: {e}")])
+            return self._trace_chunk({
+                "answer": f"工具执行出错: {e}",
+                "reasoning": [], "involved": set(),
+            }, kwargs, "error")
 
-    async def _execute(self, **kwargs) -> ToolChunk:
+    async def _execute(self, **kwargs) -> dict:
         raise NotImplementedError
 
+    def _trace_chunk(self, result: dict, tool_input: dict, status: str = "success") -> ToolChunk:
+        from scenarios.procurement.advisor import RULE_FLOWS, _extract_answer_nodes
+
+        reasoning = result.get("reasoning", [])
+        ids = set()
+        for block in reasoning:
+            for hop in block.get("hops", []):
+                ids.update((hop.get("from"), hop.get("to")))
+            ids.update(f.get("id") for f in block.get("focus", []))
+        ids.discard(None)
+        trace = {
+            "schema_version": 1,
+            "scenario": "procurement",
+            "tool_name": self.name,
+            "tool_input": tool_input,
+            "intent": self.name,
+            "status": status,
+            "kg_answer": result.get("answer", ""),
+            "rule_flow": RULE_FLOWS.get(self.name, []),
+            "reasoning": reasoning,
+            "answer_nodes": _extract_answer_nodes(reasoning),
+            "subgraph": self.kg.subgraph_data(ids) if ids else {"nodes": [], "edges": []},
+        }
+        return ToolChunk(content=[TextBlock(text=json.dumps({
+            "kg_answer": trace["kg_answer"],
+            "kg_trace": trace,
+        }, ensure_ascii=False, default=list))])
 
 # ============================================================================
 # 工具定义
@@ -136,14 +164,14 @@ class CreatePRTool(ProcurementToolBase):
         "type": "object",
         "properties": {
             "material_code": {"type": "string", "description": "物料代码，如 M1001"},
-            "quantity": {"type": "integer", "description": "采购数量"},
+            "quantity": {"type": "integer", "minimum": 1, "description": "采购数量"},
             "plant": {"type": "string", "description": "工厂代码(可选)"},
         },
         "required": ["material_code", "quantity"],
     }
     is_read_only = False
 
-    async def _execute(self, material_code: str, quantity: int, plant: str = None) -> ToolChunk:
+    async def _execute(self, material_code: str, quantity: int, plant: str = None) -> dict:
         from scenarios.procurement.advisor import answer_create_pr
 
         # 解析物料
@@ -154,17 +182,24 @@ class CreatePRTool(ProcurementToolBase):
                 break
 
         if not material:
-            return ToolChunk(content=[TextBlock(text=f"未找到物料 {material_code}，请检查物料代码是否正确")])
+            raise ValueError(f"未找到物料 {material_code}")
+        if quantity < 1:
+            raise ValueError("采购数量必须大于 0")
+
+        plant_ent = None
+        if plant:
+            plant_ent = next((p.eid for p in self.kg.list_entities("Plant")
+                              if plant.upper() in {p.eid.upper(), str(p.attrs.get("plant_id", "")).upper()}), None)
+            if not plant_ent:
+                raise ValueError(f"未找到工厂 {plant}")
 
         result = answer_create_pr(
             self.kg, self.engine,
             material=material,
             quantity=quantity,
-            plant=plant
+            plant=plant_ent
         )
-
-        answer = result.get("answer", "处理完成")
-        return ToolChunk(content=[TextBlock(text=answer)])
+        return result
 
 
 class QueryPRTool(ProcurementToolBase):
@@ -180,7 +215,7 @@ class QueryPRTool(ProcurementToolBase):
     }
     is_read_only = True
 
-    async def _execute(self, pr_id: str = None) -> ToolChunk:
+    async def _execute(self, pr_id: str = None) -> dict:
         from scenarios.procurement.advisor import answer_query_pr
 
         # 解析 PR
@@ -190,10 +225,11 @@ class QueryPRTool(ProcurementToolBase):
                 if p.attrs.get("pr_id", "").upper() == pr_id.upper():
                     pr = p.eid
                     break
+            if not pr:
+                raise ValueError(f"未找到采购申请 {pr_id}")
 
         result = answer_query_pr(self.kg, self.engine, pr=pr)
-        answer = result.get("answer", "处理完成")
-        return ToolChunk(content=[TextBlock(text=answer)])
+        return result
 
 
 class ApprovePRTool(ProcurementToolBase):
@@ -209,7 +245,7 @@ class ApprovePRTool(ProcurementToolBase):
     }
     is_read_only = False
 
-    async def _execute(self, pr_id: str = None) -> ToolChunk:
+    async def _execute(self, pr_id: str = None) -> dict:
         from scenarios.procurement.advisor import answer_approve_pr
 
         # 解析 PR
@@ -219,10 +255,11 @@ class ApprovePRTool(ProcurementToolBase):
                 if p.attrs.get("pr_id", "").upper() == pr_id.upper():
                     pr = p.eid
                     break
+            if not pr:
+                raise ValueError(f"未找到采购申请 {pr_id}")
 
         result = answer_approve_pr(self.kg, self.engine, pr=pr)
-        answer = result.get("answer", "处理完成")
-        return ToolChunk(content=[TextBlock(text=answer)])
+        return result
 
 
 class PRToPOTool(ProcurementToolBase):
@@ -238,7 +275,7 @@ class PRToPOTool(ProcurementToolBase):
     }
     is_read_only = False
 
-    async def _execute(self, pr_id: str = None) -> ToolChunk:
+    async def _execute(self, pr_id: str = None) -> dict:
         from scenarios.procurement.advisor import answer_pr_to_po
 
         # 解析 PR
@@ -248,10 +285,11 @@ class PRToPOTool(ProcurementToolBase):
                 if p.attrs.get("pr_id", "").upper() == pr_id.upper():
                     pr = p.eid
                     break
+            if not pr:
+                raise ValueError(f"未找到采购申请 {pr_id}")
 
         result = answer_pr_to_po(self.kg, self.engine, pr=pr)
-        answer = result.get("answer", "处理完成")
-        return ToolChunk(content=[TextBlock(text=answer)])
+        return result
 
 
 class QueryPOTool(ProcurementToolBase):
@@ -267,7 +305,7 @@ class QueryPOTool(ProcurementToolBase):
     }
     is_read_only = True
 
-    async def _execute(self, po_id: str = None) -> ToolChunk:
+    async def _execute(self, po_id: str = None) -> dict:
         from scenarios.procurement.advisor import answer_query_po
 
         # 解析 PO
@@ -277,10 +315,11 @@ class QueryPOTool(ProcurementToolBase):
                 if p.attrs.get("po_id", "").upper() == po_id.upper():
                     po = p.eid
                     break
+            if not po:
+                raise ValueError(f"未找到采购订单 {po_id}")
 
         result = answer_query_po(self.kg, self.engine, po=po)
-        answer = result.get("answer", "处理完成")
-        return ToolChunk(content=[TextBlock(text=answer)])
+        return result
 
 
 class ApprovePOTool(ProcurementToolBase):
@@ -296,7 +335,7 @@ class ApprovePOTool(ProcurementToolBase):
     }
     is_read_only = False
 
-    async def _execute(self, po_id: str = None) -> ToolChunk:
+    async def _execute(self, po_id: str = None) -> dict:
         from scenarios.procurement.advisor import answer_approve_po
 
         # 解析 PO
@@ -306,10 +345,11 @@ class ApprovePOTool(ProcurementToolBase):
                 if p.attrs.get("po_id", "").upper() == po_id.upper():
                     po = p.eid
                     break
+            if not po:
+                raise ValueError(f"未找到采购订单 {po_id}")
 
         result = answer_approve_po(self.kg, self.engine, po=po)
-        answer = result.get("answer", "处理完成")
-        return ToolChunk(content=[TextBlock(text=answer)])
+        return result
 
 
 class DeliveryStatusTool(ProcurementToolBase):
@@ -325,7 +365,7 @@ class DeliveryStatusTool(ProcurementToolBase):
     }
     is_read_only = True
 
-    async def _execute(self, po_id: str = None) -> ToolChunk:
+    async def _execute(self, po_id: str = None) -> dict:
         from scenarios.procurement.advisor import answer_delivery_status
 
         # 解析 PO
@@ -335,10 +375,11 @@ class DeliveryStatusTool(ProcurementToolBase):
                 if p.attrs.get("po_id", "").upper() == po_id.upper():
                     po = p.eid
                     break
+            if not po:
+                raise ValueError(f"未找到采购订单 {po_id}")
 
         result = answer_delivery_status(self.kg, self.engine, po=po)
-        answer = result.get("answer", "处理完成")
-        return ToolChunk(content=[TextBlock(text=answer)])
+        return result
 
 
 class SourceRecommendationTool(ProcurementToolBase):
@@ -356,7 +397,7 @@ class SourceRecommendationTool(ProcurementToolBase):
     }
     is_read_only = True
 
-    async def _execute(self, material_code: str, plant: str = None) -> ToolChunk:
+    async def _execute(self, material_code: str, plant: str = None) -> dict:
         from scenarios.procurement.advisor import answer_source_recommendation
 
         # 解析物料
@@ -367,7 +408,7 @@ class SourceRecommendationTool(ProcurementToolBase):
                 break
 
         if not material:
-            return ToolChunk(content=[TextBlock(text=f"未找到物料 {material_code}，请检查物料代码是否正确")])
+            raise ValueError(f"未找到物料 {material_code}")
 
         # 解析工厂
         plant_ent = None
@@ -376,14 +417,15 @@ class SourceRecommendationTool(ProcurementToolBase):
                 if p.attrs.get("plant_id", "").upper() == plant.upper():
                     plant_ent = p.eid
                     break
+            if not plant_ent:
+                raise ValueError(f"未找到工厂 {plant}")
 
         result = answer_source_recommendation(
             self.kg, self.engine,
             material=material,
             plant=plant_ent
         )
-        answer = result.get("answer", "处理完成")
-        return ToolChunk(content=[TextBlock(text=answer)])
+        return result
 
 
 # ============================================================================
@@ -442,6 +484,7 @@ async def ask_with_agent_stream(
     agent = create_procurement_agent(kg, engine)
     msg = UserMsg(name="user", content=question)
     _log(f"Agent 开始处理: {question[:50]}")
+    tool_results: dict[str, str] = {}
 
     async for event in agent.reply_stream(msg):
         _log(f"Agent 收到事件: {event.__class__.__name__}", "DEBUG")
@@ -454,6 +497,16 @@ async def ask_with_agent_stream(
             "type": event_type,
             "data": data,
         }
+        call_id = getattr(event, "tool_call_id", None)
+        if event.__class__.__name__ == "ToolResultTextDeltaEvent":
+            tool_results[call_id] = tool_results.get(call_id, "") + event.delta
+        elif event.__class__.__name__ == "ToolResultEndEvent":
+            try:
+                trace = json.loads(tool_results.pop(call_id, ""))["kg_trace"]
+                trace.update({"question": question, "tool_call_id": call_id})
+                yield {"type": "KGTraceEvent", "data": trace}
+            except (json.JSONDecodeError, KeyError, TypeError):
+                pass
     _log("Agent 处理完成")
 
 
@@ -521,6 +574,12 @@ def _serialize_event(event: Any) -> dict:
     # 提取 reply_id
     if hasattr(event, "reply_id"):
         result["reply_id"] = event.reply_id
+
+    if hasattr(event, "tool_call_id"):
+        result["tool_call_id"] = event.tool_call_id
+
+    if hasattr(event, "tool_call_name"):
+        result["tool_call_name"] = event.tool_call_name
 
     _log(f"序列化事件: {original_name} -> {result.get('type', original_name)}", "DEBUG")
     return result
