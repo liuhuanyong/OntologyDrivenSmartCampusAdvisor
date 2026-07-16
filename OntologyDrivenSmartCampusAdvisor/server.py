@@ -11,13 +11,24 @@
   /api/warehouse/*     warehouse 场景
   /api/procurement/*   procurement 场景
 
+支持 AgentScope SSE 流式路由:
+  /api/procurement/ask/stream  流式问答 (AgentScope ReAct Agent)
+
 启动后访问 http://localhost:8772
 """
 from __future__ import annotations
 
 import json
 import os
+import asyncio
+import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
+
+from dotenv import load_dotenv
+
+# 加载 .env 环境变量
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
 from scenarios import load_scenario
 
@@ -224,6 +235,74 @@ class Handler(BaseHTTPRequestHandler):
         self._send_json(result)
 
     # ------------------------------------------------------------------ #
+    # AgentScope SSE 流式路由
+    # ------------------------------------------------------------------ #
+    def _dispatch_ask_stream(self, scenario_name: str, question: str):
+        """SSE 流式响应 - AgentScope Agent"""
+        ctx = self._scenario_for(scenario_name)
+        if not ctx:
+            self._send_404()
+            return
+
+        # 检查 API Key
+        if not os.environ.get("DEEPSEEK_API_KEY"):
+            self._send_json({"error": "DEEPSEEK_API_KEY 未配置，请在 .env 中设置"}, 500)
+            return
+
+        # 发送 SSE 头
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+
+        # 在后台线程中运行异步 Agent
+        def run_agent():
+            try:
+                from scenarios.procurement.agentscope_agent import ask_with_agent_stream
+
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    # 将 async generator 转换为同步迭代器
+                    async def iterate_stream():
+                        async for event in ask_with_agent_stream(question, ctx.kg, ctx.engine):
+                            yield event
+
+                    gen = iterate_stream()
+                    try:
+                        while True:
+                            try:
+                                event = loop.run_until_complete(gen.__anext__())
+                                data = json.dumps(event, ensure_ascii=False)
+                                self.wfile.write(f"data: {data}\n\n".encode("utf-8"))
+                                self.wfile.flush()
+                            except StopAsyncIteration:
+                                break
+                    finally:
+                        pass  # gen 会在循环结束时自动清理
+                finally:
+                    loop.close()
+            except Exception as e:
+                error_data = json.dumps({"type": "error", "data": {"message": str(e)}}, ensure_ascii=False)
+                try:
+                    self.wfile.write(f"data: {error_data}\n\n".encode("utf-8"))
+                    self.wfile.flush()
+                except:
+                    pass
+            finally:
+                # 发送结束标记
+                try:
+                    self.wfile.write(b"data: {\"type\": \"done\", \"data\": {}}\n\n")
+                    self.wfile.flush()
+                except:
+                    pass
+
+        thread = threading.Thread(target=run_agent, daemon=True)
+        thread.start()
+
+    # ------------------------------------------------------------------ #
     # 路由分发
     # ------------------------------------------------------------------ #
     def do_GET(self):
@@ -238,6 +317,28 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/procurement" or path == "/procurement.html":
             self._send_file(os.path.join(STATIC_DIR, "procurement.html"), "text/html; charset=utf-8")
+            return
+
+        # 仪表盘页面 (新)
+        if path == "/dashboard" or path == "/dashboard.html":
+            self._send_file(os.path.join(STATIC_DIR, "dashboard.html"), "text/html; charset=utf-8")
+            return
+        if path.startswith("/dashboard/"):
+            self._send_file(os.path.join(STATIC_DIR, "dashboard.html"), "text/html; charset=utf-8")
+            return
+
+        # /api/<scenario>/ask/stream - SSE 流式路由 (GET 方法)
+        if path.startswith("/api/") and "/ask/stream" in path:
+            parts = path[5:].split("/")
+            scenario_name = parts[0]
+            parsed_url = urlparse(path)
+            query_params = parse_qs(parsed_url.query)
+            question_list = query_params.get("question", [])
+            question = question_list[0] if question_list else ""
+            if not question:
+                self._send_json({"error": "question 参数不能为空"}, 400)
+                return
+            self._dispatch_ask_stream(scenario_name, question)
             return
 
         # /api/<scenario>/<resource> 派发
@@ -297,7 +398,7 @@ class Handler(BaseHTTPRequestHandler):
             self._dispatch_ask("campus", question)
             return
 
-        # /api/<scenario>/ask
+        # /api/<scenario>/ask - JSON 路由
         if path.startswith("/api/") and path.endswith("/ask"):
             scenario_name = path[5:-4]
             length = int(self.headers.get("Content-Length", 0))
@@ -330,10 +431,13 @@ def main():
     print("  多场景 Web 服务已启动")
     print(f"  Campus      场景: {CAMPUS.kg}  规则 {len(CAMPUS.engine.rules)} 条")
     print(f"  访问: http://localhost:{port}/")
+    print(f"  访问 (新仪表盘): http://localhost:{port}/dashboard/campus")
     print(f"  Warehouse   场景: {WAREHOUSE.kg}  规则 {len(WAREHOUSE.engine.rules)} 条")
     print(f"  访问: http://localhost:{port}/warehouse")
+    print(f"  访问 (新仪表盘): http://localhost:{port}/dashboard/warehouse")
     print(f"  Procurement 场景: {PROCUREMENT.kg}  规则 {len(PROCUREMENT.engine.rules)} 条")
     print(f"  访问: http://localhost:{port}/procurement")
+    print(f"  访问 (新仪表盘): http://localhost:{port}/dashboard/procurement")
     print(f"  Ctrl+C 退出")
     try:
         server.serve_forever()

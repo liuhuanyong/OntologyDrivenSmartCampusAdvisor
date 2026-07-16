@@ -1,0 +1,58 @@
+[
+  {
+    "name": "M1_materialize_eligible_for",
+    "description": "[物化]把技能匹配达标的student→career写成eligible_for",
+    "pattern": "∀Student ∀Career: qualified => eligible_for(?s,?c)",
+    "kind": "materialize",
+    "priority": 5
+  },
+  {
+    "name": "R1_prerequisite_satisfied",
+    "description": "检查课程先修结构完整性(目录级)",
+    "pattern": "Course(?c) -> prerequisite_of(?p) -> exists(Course(?p))",
+    "kind": "query",
+    "priority": 10
+  },
+  {
+    "name": "R2_can_take_course",
+    "description": "判断学生是否满足某门课的全部先修",
+    "pattern": "Student(?s) -takes(passed)-> P; Course(?c) <-prerequisite_of- prereq; prereq∈P?",
+    "kind": "query",
+    "priority": 20
+  },
+  {
+    "name": "R3_recommend_next_courses",
+    "description": "推荐下一批可修课程(先修满足且未修过)",
+    "pattern": "Student(?s) -takes-> P; ∀Course(c): prereqs(c)⊆P ∧ ¬takes(?s,c)",
+    "kind": "query",
+    "priority": 30
+  },
+  {
+    "name": "R4_skill_gap",
+    "description": "目标职业所需技能与学生已有技能的缺口",
+    "pattern": "Career(?c) -requires_skill-> R; Student(?s) -has_skill-> S; gap=R-S",
+    "kind": "query",
+    "priority": 40
+  },
+  {
+    "name": "R5_eligible_careers",
+    "description": "基于专业流向+技能匹配率推荐职业(≥60%)",
+    "pattern": "Major(?m) -leads_to-> C; Student(?s) -has_skill-> S; rate=|R∩S|/|R|≥0.6",
+    "kind": "query",
+    "priority": 50
+  },
+  {
+    "name": "R6_major_completion",
+    "description": "专业必修课完成进度",
+    "pattern": "Major(?m) -requires_course-> R; Student(?s) -takes(passed)-> P; done=R∩P",
+    "kind": "query",
+    "priority": 60
+  },
+  {
+    "name": "R7_recommend_electives_for_gap",
+    "description": "针对缺口推荐可补缺的选修课",
+    "pattern": "Student(?s) -targets_career-> C; C -requires_skill-> gap; <-teaches_skill- course; R2 eligible",
+    "kind": "query",
+    "priority": 70
+  }
+]
