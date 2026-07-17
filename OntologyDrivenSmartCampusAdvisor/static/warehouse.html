@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warehouse · SAP 仓库管理智能体 · 本体知识图谱推理问答</title>
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f1f5f9;color:#1e293b;height:100vh;overflow:hidden}
+.header{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:100}
+.header h1{font-size:17px;font-weight:600}
+.header .stats{display:flex;gap:10px;font-size:12px;opacity:.95}
+.header .stats span{background:rgba(255,255,255,.15);padding:3px 10px;border-radius:12px}
+.container{display:flex;height:calc(100vh - 46px);overflow:hidden}
+.left-panel{width:50%;min-width:340px;background:#fff;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.resizer{width:6px;cursor:col-resize;background:transparent;flex-shrink:0;position:relative;z-index:50;transition:background .15s}
+.resizer:hover, .resizer.dragging{background:#6366f1}
+.resizer::after{content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:2px;height:28px;background:#cbd5e1;border-radius:1px}
+.resizer:hover::after, .resizer.dragging::after{background:#fff;height:40px}
+.right-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:340px}
+
+/* Tab bar */
+.tab-bar{display:flex;background:#fff;border-bottom:2px solid #e2e8f0;padding:0 8px;flex-shrink:0}
+.tab-btn{padding:9px 14px;background:none;border:none;border-bottom:3px solid transparent;font-size:13px;color:#64748b;cursor:pointer;font-weight:500;transition:all .2s}
+.tab-btn:hover{color:#6366f1;background:#f8fafc}
+.tab-btn.active{color:#6366f1;border-bottom-color:#6366f1;background:#f8fafc}
+.tab-content{display:none;flex:1;overflow:hidden;flex-direction:column}
+.tab-content.active{display:flex}
+
+/* Data view (entities/relations/rules lists) */
+.data-view{flex:1;overflow-y:auto;padding:14px;background:#f8fafc}
+.data-view::-webkit-scrollbar{width:6px}
+.data-view::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+.dv-summary{font-size:12px;color:#64748b;margin-bottom:12px;padding:8px 12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}
+.dv-summary b{color:#6366f1}
+.dv-section{margin-bottom:18px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}
+.dv-section-header{padding:8px 12px;background:#f1f5f9;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px}
+.dv-section-header .dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.dv-section-header .title{font-size:13px;font-weight:600;color:#1e293b;flex:1}
+.dv-section-header .count{font-size:11px;color:#64748b;background:#e2e8f0;padding:2px 8px;border-radius:10px}
+.dv-section-body{padding:0}
+.dv-row{padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:12px;transition:background .15s}
+.dv-row:hover{background:#f8fafc}
+.dv-row:last-child{border-bottom:none}
+.dv-row .row-label{font-weight:600;color:#1e293b;font-size:13px;margin-bottom:3px}
+.dv-row .row-id{font-family:'SF Mono',Menlo,monospace;font-size:10px;color:#94a3b8;margin-left:6px}
+.dv-row .row-attrs{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:#475569;margin-top:3px}
+.dv-row .row-attrs span{display:inline}
+.dv-row .row-attrs b{color:#1e293b;font-weight:600;margin-right:3px}
+.dv-triple{display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 12px;border-bottom:1px solid #f1f5f9}
+.dv-triple:last-child{border-bottom:none}
+.dv-triple .from{color:#3b82f6;font-weight:600}
+.dv-triple .pred{color:#8b5cf6;background:#f3f0ff;padding:1px 6px;border-radius:3px;font-size:11px;font-weight:600}
+.dv-triple .to{color:#ef4444;font-weight:600}
+.dv-triple .inferred-tag{font-size:9px;background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:8px;margin-left:4px}
+.dv-triple .edge-attr{font-size:10px;color:#64748b;margin-left:8px}
+.dv-rule-card{padding:12px;border-bottom:1px solid #f1f5f9}
+.dv-rule-card:last-child{border-bottom:none}
+.dv-rule-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.dv-rule-name{font-size:13px;font-weight:700;color:#4338ca}
+.dv-rule-kind{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600}
+.dv-rule-kind.query{background:#dbeafe;color:#1e40af}
+.dv-rule-kind.materialize{background:#fee2e2;color:#991b1b}
+.dv-rule-priority{font-size:10px;color:#94a3b8;margin-left:auto}
+.dv-rule-desc{font-size:12px;color:#475569;margin-bottom:6px}
+.dv-rule-pattern{font-family:'SF Mono',Menlo,monospace;font-size:11px;color:#1e293b;background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:6px 9px;line-height:1.5;white-space:pre-wrap;word-break:break-word;margin-bottom:6px}
+.dv-rule-pattern .var{color:#7c3aed;font-weight:600}
+.dv-rule-pattern .rel{color:#dc2626;font-weight:600}
+.dv-rule-pattern .op{color:#0891b2;font-weight:600}
+.dv-rule-meaning{font-size:11.5px;color:#15803d;background:#f0fdf4;border-left:3px solid #10b981;padding:6px 9px;line-height:1.6}
+.dv-rule-meaning b{color:#166534}
+.dv-schema-bar{padding:6px 12px;background:#fef9f3;border-bottom:1px solid #f3e8d8;font-size:11px;color:#92400e;font-family:'SF Mono',Menlo,monospace}
+.dv-schema-bar .var{color:#7c3aed;font-weight:600}
+
+/* Q&A Area */
+.qa-section{padding:10px 14px;border-bottom:1px solid #e2e8f0;background:#fafbfc}
+.qa-section h2{font-size:13px;color:#64748b;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.qa-section h2::before{content:"";width:3px;height:13px;background:#6366f1;border-radius:2px}
+.input-row{display:flex;gap:8px;margin-bottom:8px}
+#questionInput{flex:1;padding:9px 14px;border:2px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;transition:border-color .2s}
+#questionInput:focus{border-color:#6366f1}
+#askBtn{padding:9px 20px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:500;transition:background .2s}
+#askBtn:hover{background:#4f46e5}
+#askBtn:disabled{background:#94a3b8;cursor:not-allowed}
+.examples{display:flex;flex-wrap:wrap;gap:5px}
+.examples button{font-size:11px;padding:3px 9px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;color:#475569;cursor:pointer;transition:all .2s}
+.examples button:hover{background:#e0e7ff;border-color:#c7d2fe;color:#4338ca}
+
+/* Answer Area */
+.answer-section{flex:1;overflow-y:auto;padding:14px}
+.answer-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:12px}
+.answer-card .label{font-size:11px;color:#6366f1;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.answer-card pre{font-family:inherit;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;color:#334155}
+.answer-card .intent-badge{display:inline-block;font-size:10px;padding:1px 7px;background:#ede9fe;color:#6d28d9;border-radius:10px}
+
+/* ===== Collapsible card (pipeline / rule-flow 等) ===== */
+.collapsible-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:12px;overflow:hidden}
+.cc-header{padding:11px 14px;background:linear-gradient(90deg,#eef2ff,#f8fafc);border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;transition:background .15s}
+.cc-header:hover{background:linear-gradient(90deg,#e0e7ff,#f1f5f9)}
+.cc-header .cc-icon{font-size:13px}
+.cc-header .cc-title{font-size:12px;font-weight:600;color:#4338ca;text-transform:uppercase;letter-spacing:.5px;flex:1}
+.cc-header .cc-meta{font-size:11px;color:#64748b;background:#fff;border:1px solid #e2e8f0;padding:2px 8px;border-radius:10px}
+.cc-header .cc-toggle{font-size:11px;color:#6366f1;transition:transform .2s}
+.collapsible-card.collapsed .cc-toggle::before{content:"▶"}
+.collapsible-card:not(.collapsed) .cc-toggle::before{content:"▼"}
+.cc-body{transition:max-height .3s ease, opacity .2s ease;overflow:hidden;padding:12px}
+.collapsible-card.collapsed .cc-body{max-height:0;opacity:0;padding-top:0;padding-bottom:0}
+.collapsible-card:not(.collapsed) .cc-body{max-height:none;opacity:1}
+
+/* ===== Reasoning block ===== */
+.reasoning-block{background:#fff;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:12px;overflow:hidden}
+.rb-header{padding:10px 12px;background:linear-gradient(90deg,#ede9fe,#f8fafc);border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;transition:background .15s}
+.rb-header:hover{background:linear-gradient(90deg,#ddd6fe,#f1f5f9)}
+.rb-header .rb-toggle{font-size:11px;color:#6366f1;transition:transform .2s}
+.reasoning-block.collapsed .rb-toggle{transform:rotate(0deg)}
+.reasoning-block:not(.collapsed) .rb-toggle::before{content:"▼"}
+.reasoning-block.collapsed .rb-toggle::before{content:"▶"}
+.rb-hop-count{font-size:10px;padding:2px 7px;background:#fef3c7;color:#92400e;border-radius:8px;font-weight:600;margin-left:auto}
+.rb-body{transition:max-height .3s ease, opacity .2s ease;overflow:hidden}
+.reasoning-block.collapsed .rb-body{max-height:0;opacity:0;overflow:hidden}
+.reasoning-block:not(.collapsed) .rb-body{max-height:none;opacity:1}
+.rb-num{width:22px;height:22px;background:#6366f1;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.rb-rule{font-size:13px;font-weight:600;color:#4338ca;flex:1}
+.rb-kind{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600}
+.rb-kind.query{background:#dbeafe;color:#1e40af}
+.rb-kind.materialize{background:#fee2e2;color:#991b1b}
+.rb-priority{font-size:10px;color:#94a3b8}
+
+/* Rule definition card */
+.rule-def{padding:9px 12px;background:#fffbeb;border-bottom:1px solid #fde68a}
+.rule-def .rd-title{font-size:11px;color:#92400e;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:4px}
+.rule-def .rd-desc{font-size:12px;color:#475569;margin-bottom:5px}
+.rule-def .rd-pattern{font-family:'SF Mono',Menlo,Consolas,monospace;font-size:11.5px;color:#1e293b;background:#fff;border:1px solid #fde68a;border-radius:5px;padding:6px 9px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.rule-def .rd-pattern .var{color:#7c3aed;font-weight:600}
+.rule-def .rd-pattern .rel{color:#dc2626;font-weight:600}
+.rule-def .rd-pattern .op{color:#0891b2;font-weight:600}
+
+.rb-goal{padding:6px 12px;font-size:12px;color:#475569;background:#fef9f3;border-bottom:1px solid #f3e8d8}
+.rb-goal b{color:#c2410c}
+.rb-hops{padding:6px 0}
+.hop-item{padding:7px 12px 7px 36px;font-size:12px;border-left:3px solid #e2e8f0;margin-left:14px;position:relative;transition:all .25s;cursor:pointer}
+.hop-item:hover{background:#f8fafc}
+.hop-item.current{border-left-color:#f59e0b;background:#fef3c7;box-shadow:0 2px 8px rgba(245,158,11,.25)}
+.hop-item.done{border-left-color:#cbd5e1;opacity:.7}
+.hop-item.passed{border-left-color:#10b981}
+.hop-item.missing{border-left-color:#ef4444;background:#fef2f2}
+.hop-path{font-family:'SF Mono',Menlo,monospace;font-size:12px;color:#1e293b;margin-bottom:2px}
+.hop-path .from{color:#3b82f6;font-weight:600}
+.hop-path .arrow{color:#6366f1;margin:0 4px;font-weight:600}
+.hop-path .pred{color:#8b5cf6;background:#f3f0ff;padding:1px 5px;border-radius:3px;font-size:11px}
+.hop-path .to{color:#ef4444;font-weight:600}
+.hop-path .new-tag{display:inline-block;font-size:9px;background:#f59e0b;color:#fff;padding:1px 5px;border-radius:8px;margin-left:6px;vertical-align:middle}
+.hop-reason{font-size:11px;color:#64748b;padding:2px 0}
+.hop-reason .tag{display:inline-block;padding:1px 5px;border-radius:8px;font-size:10px;font-weight:600;margin-right:4px}
+.hop-reason .tag.ok{background:#d1fae5;color:#065f46}
+.hop-reason .tag.fail{background:#fee2e2;color:#991b1b}
+.hop-reason .tag.info{background:#dbeafe;color:#1e40af}
+.rb-conclusion{padding:8px 12px;background:#ecfdf5;border-top:1px solid #bbf7d0;font-size:12px;color:#065f46}
+.rb-conclusion b{color:#047857}
+.rb-focus-tags{padding:4px 12px 8px;display:flex;flex-wrap:wrap;gap:4px}
+.focus-tag{font-size:10px;padding:2px 7px;border-radius:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+.focus-tag.answer{background:#fef3c7;color:#b45309;border-color:#f59e0b;font-weight:600}
+
+/* 规则中文含义卡片 */
+.rule-meaning{padding:8px 12px;background:#f0fdf4;border-bottom:1px solid #bbf7d0}
+.rule-meaning .rm-title{font-size:11px;color:#15803d;font-weight:600;margin-bottom:3px;display:flex;align-items:center;gap:4px}
+.rule-meaning .rm-text{font-size:12px;color:#1e293b;line-height:1.6}
+
+/* 答案标记 */
+.hop-path .answer-tag{display:inline-block;font-size:9px;background:#f59e0b;color:#fff;padding:1px 6px;border-radius:8px;margin-left:6px;font-weight:600;vertical-align:middle}
+
+/* 规则执行流程图 */
+.rule-flow{padding:8px 0}
+.flow-step{background:#fff;border:1px solid #c7d2fe;border-radius:8px;padding:10px 12px;margin:0 4px}
+.flow-step-header{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.flow-num{width:22px;height:22px;background:#6366f1;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.flow-rule{font-size:13px;font-weight:600;color:#4338ca;flex:1}
+.flow-final{font-size:10px;padding:2px 7px;background:#fbbf24;color:#7c2d12;border-radius:8px;font-weight:600}
+.flow-chinese{font-size:12.5px;color:#1e293b;font-weight:500;margin-bottom:4px;line-height:1.5}
+.flow-why{font-size:11px;color:#64748b;margin-bottom:3px}
+.flow-why b{color:#475569}
+.flow-deps{font-size:11px;color:#dc2626}
+.flow-deps b{color:#991b1b}
+.flow-arrow{text-align:center;font-size:18px;color:#6366f1;margin:2px 0;font-weight:600}
+
+/* 执行流程 pipeline */
+.pipeline{padding:8px 0}
+.pipe-step{background:#fff;border:1px solid #e2e8f0;border-left:4px solid #6366f1;border-radius:8px;padding:10px 12px;margin:0 4px;transition:box-shadow .2s}
+.pipe-step:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.pipe-step.failed{border-left-color:#ef4444;background:#fef2f2}
+.pipe-header{display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap}
+.pipe-num{width:22px;height:22px;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.pipe-phase{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 7px;background:#f1f5f9;border-radius:8px}
+.pipe-action{font-size:13px;font-weight:600;color:#1e293b;flex:1}
+.pipe-method{font-size:11.5px;color:#475569;margin-bottom:3px;line-height:1.5}
+.pipe-method b{color:#1e293b}
+.pipe-detail{font-size:11px;color:#64748b;font-family:'SF Mono',Menlo,monospace;background:#f8fafc;border-radius:4px;padding:4px 8px;margin-bottom:3px;line-height:1.5;word-break:break-word}
+.pipe-result{font-size:11.5px;padding:4px 8px;border-radius:4px;background:#ecfdf5;color:#065f46;line-height:1.5}
+.pipe-step.failed .pipe-result{background:#fee2e2;color:#991b1b}
+.pipe-arrow{text-align:center;font-size:16px;margin:1px 0;font-weight:700}
+
+/* 规则链子项(嵌套在执行规则链步骤里) */
+.pipe-chain{margin-top:8px;padding:8px 10px;background:#fef9f3;border:1px solid #fde68a;border-radius:6px}
+.pipe-chain-title{font-size:11px;color:#92400e;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:5px}
+.chain-step{background:#fff;border:1px solid #fde68a;border-radius:6px;padding:7px 9px;margin:4px 0}
+.chain-step-header{display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap}
+.chain-num{width:18px;height:18px;background:#f59e0b;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.chain-rule{font-size:12px;font-weight:600;color:#4338ca;flex:1}
+.chain-final{font-size:9px;padding:1px 6px;background:#fbbf24;color:#7c2d12;border-radius:8px;font-weight:600}
+.chain-chinese{font-size:11.5px;color:#1e293b;margin-bottom:2px;line-height:1.5}
+.chain-why{font-size:10.5px;color:#64748b;margin-bottom:2px}
+.chain-why b{color:#475569}
+.chain-deps{font-size:10.5px;color:#dc2626}
+.chain-deps b{color:#991b1b}
+.chain-arrow{text-align:center;font-size:14px;color:#f59e0b;margin:1px 0;font-weight:700}
+
+.trace-info{font-size:11px;color:#64748b;margin-top:8px;padding:7px 10px;background:#f8fafc;border-radius:6px}
+.trace-info b{color:#475569}
+.trace-info .hint{color:#6366f1;display:block;margin-top:3px}
+
+/* Graph */
+.graph-header{padding:8px 16px;background:#fff;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.graph-header h2{font-size:13px;color:#64748b;display:flex;align-items:center;gap:6px}
+.graph-header h2::before{content:"";width:3px;height:13px;background:#10b981;border-radius:2px}
+.graph-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.graph-controls button{font-size:12px;padding:4px 10px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;color:#475569}
+.graph-controls button.active{background:#6366f1;color:#fff;border-color:#6366f1}
+.graph-controls button:hover{border-color:#c7d2fe}
+.rb-nav{display:flex;gap:4px;align-items:center;margin-right:6px}
+.rb-nav button{font-size:11px;padding:3px 9px;background:#fffbeb;border:1px solid #fde68a;border-radius:5px;cursor:pointer;color:#92400e}
+.rb-nav button:disabled{opacity:.4;cursor:not-allowed}
+.rb-nav .step-counter{font-size:11px;color:#92400e;min-width:52px;text-align:center;font-weight:600}
+#graph-container{flex:1;overflow:hidden;position:relative}
+#mynetwork{width:100%;height:100%}
+.legend{position:absolute;bottom:10px;left:10px;background:rgba(255,255,255,.96);border:1px solid #e2e8f0;border-radius:8px;padding:8px 10px;font-size:11px;box-shadow:0 2px 8px rgba(0,0,0,.08);max-width:180px}
+.legend-title{font-weight:600;margin-bottom:5px;color:#334155}
+.legend-item{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.legend-edge{display:flex;align-items:center;gap:6px;margin-top:3px;padding-top:4px;border-top:1px solid #e2e8f0}
+.legend-line{width:18px;height:3px;background:#dc2626;border-radius:2px}
+#node-info{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.96);border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);max-width:260px;display:none;max-height:80%;overflow-y:auto}
+#node-info h3{font-size:13px;margin-bottom:5px;color:#1e293b}
+#node-info .info-type{display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;margin-bottom:5px}
+#node-info .info-row{font-size:11px;color:#475569;margin-bottom:2px}
+#node-info .info-row b{color:#1e293b}
+.loading{display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:14px}
+.graph-status{position:absolute;top:10px;left:10px;background:rgba(255,255,255,.96);border:1px solid #e2e8f0;border-radius:8px;padding:6px 12px;font-size:12px;color:#475569;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.graph-status b{color:#6366f1}
+.answer-section::-webkit-scrollbar,#node-info::-webkit-scrollbar{width:6px}
+.answer-section::-webkit-scrollbar-thumb,#node-info::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+.answer-section::-webkit-scrollbar-track,#node-info::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+
+<div class="header" style="background:linear-gradient(135deg,#0ea5e9,#6366f1)">
+  <h1>Warehouse · SAP 仓库管理智能体 <a href="/" style="color:#bae6fd;font-size:11px;margin-left:12px;text-decoration:none;border:1px solid rgba(255,255,255,.4);padding:2px 10px;border-radius:12px">← 返回校园场景</a></h1>
+  <div class="stats" id="header-stats">
+    <span id="stat-entities">加载中...</span>
+    <span id="stat-relations">-</span>
+    <span id="stat-rules">-</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="left-panel">
+    <div class="qa-section">
+      <h2>提问</h2>
+      <div class="input-row">
+        <input type="text" id="questionInput" placeholder="例如：上海仓来了一批 PCB 主板如何上架？" onkeydown="if(event.key==='Enter')doAsk()">
+        <button id="askBtn" onclick="doAsk()">提问</button>
+      </div>
+      <div class="examples" id="examplesContainer">
+        <span style="font-size:11px;color:#94a3b8">加载示例中...</span>
+      </div>
+    </div>
+    <div class="answer-section" id="answerSection">
+      <div class="answer-card">
+        <div class="label">系统提示</div>
+        <pre>请在上方输入框提问，或点击上方示例问题 (SAP 仓库操作自动化场景)。
+系统将基于本体知识图谱执行推理规则，并展示：
+  ① 完整答案 (含智能体编排步骤 / 兜底方案 / 跨部门交接)
+  ② 调用的规则及其逻辑公式定义
+  ③ 逐步推理过程 (每一跳图游走 + 原因)
+  ④ 右侧图谱从起点开始逐步生长，每推理一跳即新增对应节点与边
+  ⑤ at_risk_of_obsolete 物化边会标红显示呆滞风险物料</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="resizer" id="resizer" title="拖拽调整左右宽度"></div>
+
+  <div class="right-panel">
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="graph" onclick="switchTab('graph')">📊 知识图谱</button>
+      <button class="tab-btn" data-tab="entities" onclick="switchTab('entities')">📦 实体</button>
+      <button class="tab-btn" data-tab="relations" onclick="switchTab('relations')">🔗 关系</button>
+      <button class="tab-btn" data-tab="rules" onclick="switchTab('rules')">📐 规则</button>
+    </div>
+    <div id="tab-graph" class="tab-content active">
+      <div class="graph-header">
+        <h2>知识图谱 · 推理路径生长</h2>
+        <div class="graph-controls">
+          <div class="rb-nav" id="hopNav" style="display:none">
+            <button onclick="prevHop()" id="btnPrev">◀ 上一步</button>
+            <span class="step-counter" id="stepCounter">0/0</span>
+            <button onclick="nextHop()" id="btnNext">下一步 ▶</button>
+            <button onclick="autoPlay()" id="btnPlay">▶ 自动播放</button>
+            <button onclick="showAllHops()" id="btnAll">⏭ 全部展开</button>
+          </div>
+          <button id="btn-full" class="active" onclick="showFullGraph()">全图</button>
+          <button onclick="resetView()">重置视图</button>
+        </div>
+      </div>
+      <div id="graph-container">
+        <div id="mynetwork"></div>
+        <div class="graph-status" id="graphStatus">图谱: 全图模式</div>
+        <div class="legend" id="legend">
+          <div class="legend-title">实体类型</div>
+          <div id="legend-items"></div>
+          <div class="legend-edge"><div class="legend-line"></div>当前推理跳(新增边)</div>
+          <div class="legend-item" style="margin-top:4px;padding-top:4px;border-top:1px solid #e2e8f0"><div class="legend-dot" style="background:#fbbf24;border:2px solid #b45309"></div>★ 答案节点</div>
+        </div>
+        <div id="node-info"></div>
+      </div>
+    </div>
+    <div id="tab-entities" class="tab-content">
+      <div id="entities-view" class="data-view">加载中...</div>
+    </div>
+    <div id="tab-relations" class="tab-content">
+      <div id="relations-view" class="data-view">加载中...</div>
+    </div>
+    <div id="tab-rules" class="tab-content">
+      <div id="rules-view" class="data-view">加载中...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== Global State ====================
+let fullGraphData = null;
+let network = null;
+let nodeDataSet = null;
+let edgeDataSet = null;
+let allHops = [];            // 当前问题的所有 hops (展平, 含 _rbIdx)
+let focusByBlock = {};       // rbIdx -> [{id, note}]
+let answerNodeIds = new Set(); // 最终答案节点
+let currentHopIndex = -1;
+let playTimer = null;
+let graphMode = 'full';      // 'full' | 'building'
+let addedNodeIds = new Set();
+let addedEdgeKeys = new Set();
+let activeEdgeId = null;
+
+const EDGE_COLORS = {
+  'supplies_to':'#8b5cf6','demands':'#ec4899','belongs_to_plant':'#0ea5e9',
+  'stored_at':'#14b8a6','holds_stock':'#10b981',
+  'sap_receipt':'#6366f1','sap_issue':'#6366f1','sap_transfer':'#6366f1',
+  'sap_stocktake':'#6366f1','sap_report':'#6366f1',
+  'task_targets_material':'#f59e0b','task_in_plant':'#0ea5e9','requires_role':'#64748b',
+  'at_risk_of_obsolete':'#dc2626'
+};
+
+// ==================== Init ====================
+window.onload = async function() {
+  await loadStats();
+  await loadFullGraph();
+  await loadExamples();
+  initResizer();
+};
+
+// ==================== Resizer (左右拖拽) ====================
+function initResizer() {
+  const resizer = document.getElementById('resizer');
+  const leftPanel = document.querySelector('.left-panel');
+  const container = document.querySelector('.container');
+  let isDragging = false;
+
+  resizer.addEventListener('mousedown', function(e) {
+    isDragging = true;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    const rect = container.getBoundingClientRect();
+    let newWidth = e.clientX - rect.left;
+    const minW = 340;
+    const maxW = rect.width - 340;
+    if (newWidth < minW) newWidth = minW;
+    if (newWidth > maxW) newWidth = maxW;
+    leftPanel.style.width = newWidth + 'px';
+    // vis.js 需要重绘
+    if (network && currentTab === 'graph') {
+      setTimeout(() => { try { network.redraw(); network.fit({animation:false}); } catch(e){} }, 0);
+    }
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (isDragging) {
+      isDragging = false;
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (network && currentTab === 'graph') {
+        setTimeout(() => { try { network.fit({animation:{duration:300}}); } catch(e){} }, 50);
+      }
+    }
+  });
+}
+
+let examplesLoaded = false;
+async function loadExamples() {
+  if (examplesLoaded) return;
+  try {
+    const resp = await fetch('/api/warehouse/examples');
+    const data = await resp.json();
+    const container = document.getElementById('examplesContainer');
+    if (container && data.examples) {
+      container.innerHTML = data.examples.map(q =>
+        `<button onclick="fillExample(this)" title="${q}">${q}</button>`
+      ).join('');
+    }
+    examplesLoaded = true;
+  } catch(e) { console.error('加载示例失败', e); }
+}
+
+// ==================== Tab switching ====================
+let currentTab = 'graph';
+let entitiesData = null, relationsData = null, rulesData = null;
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + tab));
+  if (tab === 'entities' && !entitiesData) loadEntities();
+  if (tab === 'relations' && !relationsData) loadRelations();
+  if (tab === 'rules' && !rulesData) loadRules();
+  if (tab === 'graph' && network) setTimeout(() => network.redraw(), 50);
+}
+
+async function loadEntities() {
+  try {
+    const resp = await fetch('/api/warehouse/entities');
+    entitiesData = await resp.json();
+    renderEntitiesView();
+  } catch(e) { document.getElementById('entities-view').innerHTML = '加载失败: '+e.message; }
+}
+
+async function loadRelations() {
+  try {
+    const resp = await fetch('/api/warehouse/relations');
+    relationsData = await resp.json();
+    renderRelationsView();
+  } catch(e) { document.getElementById('relations-view').innerHTML = '加载失败: '+e.message; }
+}
+
+async function loadRules() {
+  try {
+    const resp = await fetch('/api/warehouse/rules');
+    rulesData = await resp.json();
+    renderRulesView();
+  } catch(e) { document.getElementById('rules-view').innerHTML = '加载失败: '+e.message; }
+}
+
+function renderEntitiesView() {
+  const v = document.getElementById('entities-view');
+  const { schemas, instances, total } = entitiesData;
+  let html = `<div class="dv-summary">📦 <b>实体总览</b> · 共 <b>${total}</b> 个实体 · <b>${Object.keys(instances).length}</b> 种类型</div>`;
+  for (const [etype, ents] of Object.entries(instances)) {
+    const schema = schemas[etype];
+    const attrsStr = Object.entries(schema.attrs).map(([k,t]) => `<span class="var">${k}</span>:${t}`).join('  ');
+    html += `<div class="dv-section">
+      <div class="dv-section-header">
+        <div class="dot" style="background:${schema.color}"></div>
+        <div class="title">${etype}</div>
+        <span class="count">${ents.length} 个</span>
+      </div>
+      <div class="dv-schema-bar">属性 schema: ${attrsStr}</div>
+      <div class="dv-section-body">`;
+    for (const e of ents) {
+      const attrsHtml = Object.entries(e.attrs).map(([k,val]) => `<span><b>${k}:</b>${val}</span>`).join('');
+      html += `<div class="dv-row">
+        <div class="row-label">${e.label}<span class="row-id">${e.id}</span></div>
+        <div class="row-attrs">${attrsHtml}</div>
+      </div>`;
+    }
+    html += `</div></div>`;
+  }
+  v.innerHTML = html;
+}
+
+function renderRelationsView() {
+  const v = document.getElementById('relations-view');
+  const { schemas, instances, total } = relationsData;
+  let html = `<div class="dv-summary">🔗 <b>关系总览</b> · 共 <b>${total}</b> 条关系实例 · <b>${Object.keys(schemas).length}</b> 种关系类型</div>`;
+  // 按 schema 顺序展示
+  for (const [pred, schema] of Object.entries(schemas)) {
+    const triples = instances[pred] || [];
+    const edgeAttrs = schema.edge && Object.keys(schema.edge).length > 0
+      ? Object.entries(schema.edge).map(([k,t]) => `<span class="var">${k}</span>:${t}`).join('  ') : '';
+    html += `<div class="dv-section">
+      <div class="dv-section-header">
+        <div class="title">${pred}</div>
+        <span class="count">${triples.length} 条</span>
+      </div>
+      <div class="dv-schema-bar"><span class="var">domain</span>:${schema.domain}  →  <span class="var">range</span>:${schema.range}${edgeAttrs ? '  |  edge: '+edgeAttrs : ''}</div>
+      <div class="dv-section-body">`;
+    if (triples.length === 0) {
+      html += `<div class="dv-row" style="color:#94a3b8;font-style:italic">暂无实例</div>`;
+    } else {
+      for (const t of triples) {
+        const edgeAttr = t.edge && Object.keys(t.edge).length > 0
+          ? Object.entries(t.edge).map(([k,v]) => `${k}=${v}`).join(' ')
+          : '';
+        html += `<div class="dv-triple">
+          <span class="from">${t.from_label}</span>
+          <span class="pred">${pred}</span>
+          <span class="to">${t.to_label}</span>
+          ${t.inferred ? '<span class="inferred-tag">推理派生</span>' : ''}
+          ${edgeAttr ? `<span class="edge-attr">{${edgeAttr}}</span>` : ''}
+        </div>`;
+      }
+    }
+    html += `</div></div>`;
+  }
+  v.innerHTML = html;
+}
+
+function renderRulesView() {
+  const v = document.getElementById('rules-view');
+  let html = `<div class="dv-summary">📐 <b>规则总览</b> · 共 <b>${rulesData.length}</b> 条规则 · query(即席查询) + materialize(物化派生)</div>`;
+  for (const r of rulesData) {
+    html += `<div class="dv-rule-card">
+      <div class="dv-rule-header">
+        <span class="dv-rule-name">${r.name}</span>
+        <span class="dv-rule-kind ${r.kind}">${r.kind}</span>
+        <span class="dv-rule-priority">优先级 ${r.priority}</span>
+      </div>
+      <div class="dv-rule-desc">${r.description}</div>
+      <div class="dv-rule-pattern">${highlightPattern(r.pattern)}</div>
+      <div class="dv-rule-meaning"><b>中文含义:</b> ${r.meaning}</div>
+    </div>`;
+  }
+  v.innerHTML = html;
+}
+
+async function loadStats() {
+  const resp = await fetch('/api/warehouse/stats');
+  const data = await resp.json();
+  document.getElementById('stat-entities').textContent = `实体 ${data.kg.entities}`;
+  document.getElementById('stat-relations').textContent = `关系 ${data.kg.relations} (推理${data.kg.inferred_facts})`;
+  document.getElementById('stat-rules').textContent = `规则 ${data.rules}`;
+  const legendItems = document.getElementById('legend-items');
+  for (const [type, color] of Object.entries(data.colors)) {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<div class="legend-dot" style="background:${color}"></div>${type}`;
+    legendItems.appendChild(item);
+  }
+}
+
+async function loadFullGraph() {
+  const resp = await fetch('/api/warehouse/graph');
+  fullGraphData = await resp.json();
+  renderFullGraph();
+}
+
+// ==================== Full graph rendering ====================
+function buildNode(node, dimmed) {
+  return {
+    id: node.id, label: node.label, group: node.type,
+    color: { background: node.color, border: node.color,
+             highlight: { background: node.color, border: '#1e293b' } },
+    font: { color: dimmed ? '#cbd5e1' : '#1e293b', size: 13 },
+    opacity: dimmed ? 0.25 : 1.0,
+    shape: 'dot',
+    size: node.type === 'Student' ? 18 : node.type === 'Career' ? 16 : node.type === 'Course' ? 12 : 10,
+    title: `${node.type}: ${node.label}`
+  };
+}
+function buildEdge(e, dimmed) {
+  const col = EDGE_COLORS[e.label] || '#94a3b8';
+  return {
+    id: e.from + '|' + e.label + '|' + e.to,
+    from: e.from, to: e.to, label: e.label, arrows: 'to',
+    color: { color: dimmed ? '#f1f5f9' : col, opacity: dimmed ? 0.2 : 0.7 },
+    font: { size: 9, color: dimmed ? '#e2e8f0' : '#64748b', strokeWidth: 0, background: 'rgba(255,255,255,.8)' },
+    width: dimmed ? 0.5 : 2,
+    dashes: e.inferred ? [5,3] : false,
+  };
+}
+
+function renderFullGraph() {
+  graphMode = 'full';
+  document.getElementById('graphStatus').innerHTML = `图谱: <b>全图</b> (${fullGraphData.nodes.length}节点 / ${fullGraphData.edges.length}边)`;
+  const container = document.getElementById('mynetwork');
+  const nodes = fullGraphData.nodes.map(n => buildNode(n, false));
+  const edges = fullGraphData.edges.map(e => buildEdge(e, false));
+  const options = graphOptions(true);
+  if (network) network.destroy();
+  nodeDataSet = new vis.DataSet(nodes);
+  edgeDataSet = new vis.DataSet(edges);
+  network = new vis.Network(container, { nodes: nodeDataSet, edges: edgeDataSet }, options);
+  network.on('click', p => { if (p.nodes.length>0) showNodeInfo(p.nodes[0]); else document.getElementById('node-info').style.display='none'; });
+  document.getElementById('btn-full').classList.add('active');
+}
+
+function graphOptions(stabilize, hierarchical) {
+  const opts = {
+    nodes: { borderWidth: 2, shadow:{enabled:true,size:6,x:0,y:0} },
+    edges: { smooth: { type:'continuous', roundness:0.3 } },
+    interaction: { hover:true, tooltipDelay:100 }
+  };
+  if (hierarchical) {
+    // 层次布局: 横平竖直, 左到右排列
+    opts.layout = { hierarchical: { enabled:true, direction:'LR', sortMethod:'directed',
+                                     levelSeparation:140, nodeSpacing:90, treeSpacing:100,
+                                     shakeTowards:'roots' } };
+    opts.physics = { enabled: false };
+    opts.edges.smooth = { type:'cubicBezier', roundness:0.4, forceDirection:'horizontal' };
+  } else {
+    opts.physics = { barnesHut: { gravitationalConstant:-3000, centralGravity:0.15, springLength:110, springConstant:0.04, damping:0.5 },
+                     stabilization: { enabled: stabilize, iterations: 80, fit: true } };
+  }
+  return opts;
+}
+
+// ==================== Incremental graph (building mode) ====================
+function initBuildingGraph() {
+  graphMode = 'building';
+  document.getElementById('graphStatus').innerHTML = `图谱: <b>推理生长模式</b> (层次布局 · 从左到右)`;
+  const container = document.getElementById('mynetwork');
+  if (network) network.destroy();
+  addedNodeIds = new Set();
+  addedEdgeKeys = new Set();
+  activeEdgeId = null;
+  nodeDataSet = new vis.DataSet([]);
+  edgeDataSet = new vis.DataSet([]);
+  // 层次布局: 横平竖直
+  const options = {
+    nodes: { borderWidth: 2, shadow:{enabled:true,size:6,x:0,y:0} },
+    edges: { smooth: { type:'cubicBezier', roundness:0.4, forceDirection:'horizontal' }, arrows:'to' },
+    layout: { hierarchical: { enabled:true, direction:'LR', sortMethod:'directed',
+                              levelSeparation:150, nodeSpacing:90, treeSpacing:110,
+                              shakeTowards:'roots' } },
+    physics: { enabled: false },
+    interaction: { hover:true, tooltipDelay:100 }
+  };
+  network = new vis.Network(container, { nodes: nodeDataSet, edges: edgeDataSet }, options);
+  network.on('click', p => { if (p.nodes.length>0) showNodeInfo(p.nodes[0]); else document.getElementById('node-info').style.display='none'; });
+  document.getElementById('btn-full').classList.remove('active');
+}
+
+function addNodeIncremental(nodeId, opts) {
+  opts = opts || {};
+  if (addedNodeIds.has(nodeId)) return false;
+  const node = fullGraphData.nodes.find(n => n.id === nodeId);
+  if (!node) return false;
+  const isAnswer = answerNodeIds.has(nodeId);
+  const sizeMult = isAnswer ? 2.2 : (opts.highlight ? 1.5 : 1);
+  const baseSize = node.type === 'AgentTask' ? 18 : node.type === 'Material' ? 16 : node.type === 'StockRecord' ? 14 : node.type === 'StorageBin' ? 12 : 10;
+  nodeDataSet.add({
+    id: node.id,
+    label: isAnswer ? '★ ' + node.label : node.label,
+    group: node.type,
+    color: { background: isAnswer ? '#fbbf24' : node.color,
+             border: isAnswer ? '#b45309' : (opts.highlight ? '#1e293b' : node.color),
+             highlight: { background: isAnswer ? '#fbbf24' : node.color, border: '#1e293b' } },
+    font: { color: isAnswer ? '#7c2d12' : '#1e293b', size: isAnswer ? 16 : 13, bold: isAnswer || !!opts.highlight },
+    shape: isAnswer ? 'star' : 'dot',
+    size: baseSize * sizeMult,
+    title: isAnswer ? `🎯 答案节点: ${node.label}\n${node.type}\n${JSON.stringify(node.attrs,null,0)}` : `${node.type}: ${node.label}\n${JSON.stringify(node.attrs,null,0)}`,
+    shadow: isAnswer ? {enabled:true,size:25,x:0,y:0,color:'rgba(251,191,36,0.6)'} : (opts.highlight ? {enabled:true,size:14,x:0,y:0} : {enabled:true,size:6,x:0,y:0})
+  });
+  addedNodeIds.add(nodeId);
+  return true;
+}
+
+function addEdgeIncremental(from, to, predicate, opts) {
+  opts = opts || {};
+  const key = from + '|' + predicate + '|' + to;
+  // demote previous active edge
+  if (activeEdgeId && activeEdgeId !== key && addedEdgeKeys.has(activeEdgeId)) {
+    const prev = edgeDataSet.get(activeEdgeId);
+    if (prev) {
+      const baseCol = EDGE_COLORS[prev.label] || '#94a3b8';
+      edgeDataSet.update({ id: activeEdgeId, color:{color:baseCol,opacity:0.7}, width:2,
+        font:{size:9,color:'#64748b',strokeWidth:0,background:'rgba(255,255,255,.8)'} });
+    }
+  }
+  if (addedEdgeKeys.has(key)) {
+    // re-activate
+    edgeDataSet.update({ id: key, color:{color:'#dc2626',opacity:1.0}, width:5,
+      font:{size:13,color:'#dc2626',strokeWidth:0,background:'rgba(255,255,255,.9)'} });
+    activeEdgeId = key;
+    return false;
+  }
+  const label = predicate === '__missing__' ? '未满足条件' : predicate;
+  const baseCol = EDGE_COLORS[predicate] || '#94a3b8';
+  edgeDataSet.add({
+    id: key, from: from, to: to, label: label, arrows:'to',
+    color: { color: opts.active ? '#dc2626' : baseCol, opacity: opts.active ? 1.0 : 0.7 },
+    font: { size: opts.active ? 13 : 9, color: opts.active ? '#dc2626' : '#64748b', strokeWidth:0, background:'rgba(255,255,255,.8)' },
+    width: opts.active ? 5 : 2,
+    dashes: predicate === '__missing__' ? [3,3] : false,
+  });
+  addedEdgeKeys.add(key);
+  activeEdgeId = key;
+  return true;
+}
+
+// ==================== Apply hop to graph ====================
+function applyHopToGraph(hopIndex, animate) {
+  const hop = allHops[hopIndex];
+  if (!hop) return;
+  // Add from & to nodes (highlight = newly added)
+  const fromNew = addNodeIncremental(hop.from, {highlight:true});
+  const toNew = addNodeIncremental(hop.to, {highlight:true});
+  // If nodes already existed, still emphasize them briefly
+  if (!fromNew) emphasizeNode(hop.from);
+  if (!toNew) emphasizeNode(hop.to);
+  // Add edge as active
+  addEdgeIncremental(hop.from, hop.to, hop.predicate, {active:true});
+  // Focus camera on target node
+  if (animate) {
+    setTimeout(() => { if (network) network.focus(hop.to, {scale:0.9, animation:{duration:600,easingFunction:'easeInOutQuad'}}); }, 80);
+  }
+  updateGraphStatus(hopIndex);
+}
+
+function emphasizeNode(nodeId) {
+  if (!addedNodeIds.has(nodeId)) return;
+  const node = fullGraphData.nodes.find(n=>n.id===nodeId);
+  if (!node) return;
+  nodeDataSet.update({ id: nodeId, size: (node.type==='Student'?18:node.type==='Career'?16:node.type==='Course'?12:10)*1.5,
+    shadow:{enabled:true,size:14,x:0,y:0}, font:{color:'#1e293b',size:13,bold:true} });
+}
+
+function updateGraphStatus(hopIndex) {
+  const hop = allHops[hopIndex];
+  document.getElementById('graphStatus').innerHTML =
+    `图谱: <b>推理生长中</b> · 已添加 ${addedNodeIds.size} 节点 / ${addedEdgeKeys.size} 边 · 当前第 ${hopIndex+1} 跳: ${hop.from_label} ─${hop.predicate}→ ${hop.to_label}`;
+}
+
+// ==================== Node info ====================
+function showNodeInfo(nodeId) {
+  const node = fullGraphData.nodes.find(n => n.id === nodeId);
+  if (!node) return;
+  const info = document.getElementById('node-info');
+  let html = `<h3>${node.label}</h3>`;
+  html += `<span class="info-type" style="background:${node.color}22;color:${node.color}">${node.type}</span>`;
+  for (const [k,v] of Object.entries(node.attrs)) html += `<div class="info-row"><b>${k}:</b> ${v}</div>`;
+  const outEdges = fullGraphData.edges.filter(e => e.from === nodeId);
+  const inEdges = fullGraphData.edges.filter(e => e.to === nodeId);
+  if (outEdges.length) {
+    html += `<div class="info-row" style="margin-top:5px"><b>出边 (${outEdges.length}):</b></div>`;
+    for (const e of outEdges.slice(0,8)) { const t = fullGraphData.nodes.find(n=>n.id===e.to); html += `<div class="info-row">  ─${e.label}→ ${t?t.label:e.to}</div>`; }
+  }
+  if (inEdges.length) {
+    html += `<div class="info-row" style="margin-top:5px"><b>入边 (${inEdges.length}):</b></div>`;
+    for (const e of inEdges.slice(0,8)) { const s = fullGraphData.nodes.find(n=>n.id===e.from); html += `<div class="info-row">  ${s?s.label:e.from} ─${e.label}→</div>`; }
+  }
+  info.innerHTML = html;
+  info.style.display = 'block';
+}
+
+// ==================== Q&A ====================
+function fillExample(btn) { document.getElementById('questionInput').value = btn.textContent; doAsk(); }
+
+async function doAsk() {
+  const input = document.getElementById('questionInput');
+  const question = input.value.trim();
+  if (!question) return;
+  const btn = document.getElementById('askBtn');
+  btn.disabled = true; btn.textContent = '推理中...';
+  document.getElementById('answerSection').innerHTML = '<div class="loading">正在执行推理规则并追踪图游走...</div>';
+  try {
+    const resp = await fetch('/api/warehouse/ask', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({question}) });
+    const data = await resp.json();
+    displayResult(data);
+  } catch (e) {
+    document.getElementById('answerSection').innerHTML = `<div class="answer-card"><pre>请求失败: ${e.message}</pre></div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = '提问';
+  }
+}
+
+function highlightPattern(pat) {
+  // simple syntax highlight for rule pattern
+  return pat
+    .replace(/([?][a-zA-Z]\w*)/g, '<span class="var">$1</span>')     // ?s ?c
+    .replace(/\b(supplies_to|demands|belongs_to_plant|stored_at|holds_stock|sap_receipt|sap_issue|sap_transfer|sap_stocktake|sap_report|task_targets_material|task_in_plant|requires_role|at_risk_of_obsolete)\b/g, '<span class="rel">$1</span>')
+    .replace(/(⊆|∈|¬|≥|∀|∩|∪|=>|->|<-)/g, '<span class="op">$1</span>');
+}
+
+function displayResult(data) {
+  // Flatten all hops across reasoning blocks
+  allHops = [];
+  focusByBlock = {};
+  answerNodeIds = new Set(data.answer_nodes || []);
+  (data.reasoning||[]).forEach((rb, rbIdx) => {
+    focusByBlock[rbIdx] = rb.focus || [];
+    rb.hops.forEach(h => allHops.push(Object.assign(h, {_rbIdx: rbIdx})));
+  });
+  currentHopIndex = -1;
+
+  const section = document.getElementById('answerSection');
+  let html = '';
+
+  // Answer card
+  html += `<div class="answer-card"><div class="label">回答`;
+  if (data.intent && data.intent !== 'unknown' && data.intent !== 'error') {
+    html += `<span class="intent-badge">意图: ${data.intent}</span>`;
+  }
+  html += `</div><pre>${data.answer}</pre></div>`;
+
+  // Execution pipeline panel (系统执行流程) - 可折叠
+  if (data.pipeline && data.pipeline.length > 0) {
+    const phaseColors = {
+      'NLU': '#3b82f6', 'Orchestration': '#8b5cf6', 'Param Resolution': '#f59e0b',
+      'Reasoning': '#10b981', 'Graph Extraction': '#ec4899', 'Answer Generation': '#ef4444',
+      'FAIL': '#94a3b8',
+    };
+    html += `<div class="collapsible-card collapsed" id="cc-pipeline">
+      <div class="cc-header" onclick="toggleCard('cc-pipeline')">
+        <span class="cc-icon">⚙️</span>
+        <span class="cc-title">系统执行流程</span>
+        <span class="cc-meta">${data.pipeline.length} 步</span>
+        <span class="cc-toggle">▶</span>
+      </div>
+      <div class="cc-body">`;
+    html += `<div class="pipeline">`;
+    data.pipeline.forEach((p, i) => {
+      const color = phaseColors[p.phase] || '#64748b';
+      const isSuccess = p.result && p.result.includes('✅');
+      const isWarn = p.result && p.result.includes('⚠️');
+      const isFail = p.result && (p.result.includes('❌') || p.phase === 'FAIL');
+      const statusIcon = isFail ? '❌' : (isWarn ? '⚠️' : (isSuccess ? '✅' : '▶'));
+      html += `<div class="pipe-step ${isFail?'failed':''}">`;
+      html += `<div class="pipe-header">`;
+      html += `<div class="pipe-num" style="background:${color}">${p.step}</div>`;
+      html += `<div class="pipe-phase" style="color:${color}">${p.phase}</div>`;
+      html += `<div class="pipe-action">${p.action}</div>`;
+      html += `</div>`;
+      if (p.method) html += `<div class="pipe-method"><b>方法:</b> ${p.method}</div>`;
+      if (p.detail) html += `<div class="pipe-detail">${p.detail}</div>`;
+      if (p.result) html += `<div class="pipe-result">${statusIcon} ${p.result.replace(/^[✅⚠️❌▶]\s*/, '')}</div>`;
+      // 规则链子项: 当该步骤含 chain 字段时, 嵌入规则执行流程 + 逐步推理详情
+      if (p.chain && p.chain.length > 0) {
+        html += `<div class="pipe-chain">`;
+        html += `<div class="pipe-chain-title">🔗 规则执行流程 · ${p.chain.length} 条规则${p.chain.length>1?' (有依赖)':''}</div>`;
+        p.chain.forEach((rf, ci) => {
+          const isLast = ci === p.chain.length - 1;
+          const deps = rf.depends_on && rf.depends_on.length > 0 ? rf.depends_on.join(', ') : '无';
+          html += `<div class="chain-step">
+            <div class="chain-step-header">
+              <div class="chain-num">${ci+1}</div>
+              <div class="chain-rule">${rf.rule}</div>
+              ${isLast ? '<span class="chain-final">最终</span>' : ''}
+            </div>
+            <div class="chain-chinese">${rf.chinese}</div>
+            <div class="chain-why"><b>作用:</b> ${rf.why}</div>
+            <div class="chain-deps"><b>依赖规则:</b> ${deps}</div>
+          </div>`;
+          if (!isLast) html += `<div class="chain-arrow">↓</div>`;
+        });
+        html += `</div>`;
+        // 逐步推理详情 (每个规则一个可折叠块)
+        if (data.reasoning && data.reasoning.length > 0) {
+          html += `<div class="pipe-chain-title" style="margin-top:10px">🔎 逐步推理详情 · ${data.reasoning.length} 条规则 · 共 ${allHops.length} 跳图游走</div>`;
+          data.reasoning.forEach((rb, rbIdx) => {
+            const hopStartIdx = allHops.findIndex(h => h._rbIdx === rbIdx);
+            html += `<div class="reasoning-block collapsed" id="rb-${rbIdx}">
+              <div class="rb-header" onclick="toggleRB(${rbIdx})">
+                <div class="rb-num">${rbIdx+1}</div>
+                <div class="rb-rule">${rb.rule}</div>
+                <span class="rb-kind ${rb.rule_kind}">${rb.rule_kind}</span>
+                <span class="rb-hop-count">${rb.hops.length} 跳</span>
+                <span class="rb-toggle">▶</span>
+              </div>
+              <div class="rb-body">
+              <div class="rule-def">
+                <div class="rd-title">📋 规则定义 (逻辑公式)</div>
+                <div class="rd-desc">${rb.rule_desc}</div>
+                <div class="rd-pattern">${highlightPattern(rb.rule_pattern)}</div>
+              </div>
+              <div class="rule-meaning">
+                <div class="rm-title">📖 中文含义</div>
+                <div class="rm-text">${RULE_MEANINGS_UI[rb.rule] || rb.rule_desc}</div>
+              </div>
+              <div class="rb-goal"><b>本次目标:</b> ${rb.goal}</div>
+              <div class="rb-hops" id="hops-${rbIdx}">`;
+            rb.hops.forEach((h, hi) => {
+              const globalIdx = hopStartIdx + hi;
+              let cls = 'hop-item';
+              let tag = '<span class="tag info">图游走</span>';
+              if (h.reason.includes('✓')) { cls += ' passed'; tag = '<span class="tag ok">已满足</span>'; }
+              else if (h.reason.includes('✗')) { cls += ' missing'; tag = '<span class="tag fail">缺口</span>'; }
+              const predLabel = h.predicate === '__missing__' ? '未通过先修' : h.predicate;
+              const toIsAnswer = answerNodeIds.has(h.to);
+              html += `<div class="${cls}" id="hop-${globalIdx}" onclick="jumpToHop(${globalIdx})">
+                <div class="hop-path">
+                  <span class="from">${h.from_label}</span>
+                  <span class="arrow">─</span><span class="pred">${predLabel}</span><span class="arrow">→</span>
+                  <span class="to">${toIsAnswer ? '★ ' : ''}${h.to_label}</span>
+                  ${toIsAnswer ? '<span class="answer-tag">答案</span>' : `<span class="new-tag" id="newtag-${globalIdx}">+新增</span>`}
+                </div>
+                <div class="hop-reason">${tag}${h.reason}</div>
+              </div>`;
+            });
+            html += `</div>`;
+            if (rb.focus && rb.focus.length) {
+              html += `<div class="rb-focus-tags">`;
+              rb.focus.forEach(f => {
+                const node = fullGraphData ? fullGraphData.nodes.find(n=>n.id===f.id) : null;
+                const isAns = answerNodeIds.has(f.id);
+                html += `<span class="focus-tag${isAns?' answer':''}">${isAns?'🎯':'⭐'} ${node?node.label:f.id}: ${f.note}</span>`;
+              });
+              html += `</div>`;
+            }
+            html += `<div class="rb-conclusion"><b>结论:</b> ${rb.conclusion}</div></div></div>`;
+          });
+        }
+      }
+      html += `</div>`;
+      if (i < data.pipeline.length - 1) html += `<div class="pipe-arrow" style="color:${color}">↓</div>`;
+    });
+    html += `</div></div></div>`; // pipeline + cc-body + collapsible-card
+  }
+
+  // Trace info
+  if (data.involved && data.involved.length > 0) {
+    html += `<div class="trace-info">
+      <b>涉及实体:</b> ${data.involved.length} 个 · <b>推理跳数:</b> ${allHops.length} 跳<br>
+      ${answerNodeIds.size>0 ? `<b style="color:#b45309">答案节点: ${[...answerNodeIds].map(id=>{const n=fullGraphData.nodes.find(n=>n.id===id);return n?n.label:id}).join(', ')}</b><br>` : ''}
+      <span class="hint">→ 右侧图谱(层次布局)从起点开始逐步生长，最终答案节点以★金色星形标记</span>
+    </div>`;
+  }
+  section.innerHTML = html;
+
+  // Switch to building mode
+  if (allHops.length > 0) {
+    document.getElementById('hopNav').style.display = 'flex';
+    initBuildingGraph();
+    const firstFocus = focusByBlock[0] && focusByBlock[0][0];
+    if (firstFocus) addNodeIncremental(firstFocus.id, {highlight:true});
+    updateStepCounter();
+  } else {
+    document.getElementById('hopNav').style.display = 'none';
+  }
+}
+
+// 规则中文含义 (前端副本, 与后端 RULE_MEANINGS 一致)
+const RULE_MEANINGS_UI = {
+  "R1_recommend_bin_for_material": "根据物料的易腐 / 危化 / 成品属性匹配目标 zone, 再校验库位剩余容量, 选剩余容量最大的库位作为推荐。",
+  "R2_plan_receipt": "智能体编排收料: 选供应商 (按 rating) → 路由目标工厂 → 复用 R1 推荐库位 → 关联质检 SOP → 上架 → 过账。异常时输出兜底方案。",
+  "R3_plan_issue": "智能体编排发料: 按客户需求 → FIFO 拣选可用批次 → 复核 → 出库 SOP (MB1A 过账) → 跨部门交接。库存不足时拆单或触发补货 / 调拨。",
+  "R4_plan_transfer": "智能体编排调拨: 选源工厂 → 找源库位 (取库存最大) → 复用 R1 推荐目标库位 → 在途登记 → 收货确认 → MB1B 过账。",
+  "R5_plan_stocktake": "智能体编排盘点: 按库位库存量做 ABC 分类 → 差异化盘点频率 (A 类月盘 / B 类季盘 / C 类半年盘) → MI09 过账差异。",
+  "R6_detect_idle_stock": "扫描所有 StockRecord, days_idle > 180 天 且 qty > safety_stock 视为呆滞。风险评级: high (idle>240 + excess>ss) / medium (idle>180 + excess>0)。",
+  "R7_cross_dept_handoff": "遍历 AgentTask, 提取 requires_role 关联的角色 + SOP 文档, 对比 assignee 判断是否跨部门, 输出交接点清单。",
+  "M1_materialize_obsolete_risk": "把 R6 中风险等级 ≥ medium 的 (Material, StockRecord) 物化为 at_risk_of_obsolete 边, 含 risk_level / days_idle / excess_qty 边属性。",
+};
+
+// ==================== Hop navigation ====================
+function toggleRB(rbIdx) {
+  const rb = document.getElementById('rb-' + rbIdx);
+  if (!rb) return;
+  rb.classList.toggle('collapsed');
+  // 展开/折叠后, 如果当前 tab 是图谱, 重新 fit 一下避免布局错位
+  if (network && currentTab === 'graph') {
+    setTimeout(() => { try { network.fit({animation:{duration:200}}); } catch(e){} }, 60);
+  }
+}
+
+function toggleCard(cardId) {
+  const card = document.getElementById(cardId);
+  if (!card) return;
+  card.classList.toggle('collapsed');
+  // 展开/折叠后, 如果当前 tab 是图谱, 重新 fit 一下避免布局错位
+  if (network && currentTab === 'graph') {
+    setTimeout(() => { try { network.fit({animation:{duration:200}}); } catch(e){} }, 60);
+  }
+}
+
+function jumpToHop(idx) {
+  if (idx < 0 || idx >= allHops.length) return;
+  // 展开包含该跳的推理块
+  for (let i = 0; i < allHops.length; i++) {
+    if (i === idx) {
+      const rbIdx = allHops[i]._rbIdx;
+      const rb = document.getElementById('rb-' + rbIdx);
+      if (rb && rb.classList.contains('collapsed')) {
+        rb.classList.remove('collapsed');
+      }
+    }
+  }
+  // If jumping forward, apply all hops up to idx that aren't applied yet
+  // If jumping backward, we rebuild from scratch up to idx
+  if (idx < currentHopIndex) {
+    // rebuild: clear and re-apply 0..idx
+    initBuildingGraph();
+    const firstFocus = focusByBlock[0] && focusByBlock[0][0];
+    if (firstFocus) addNodeIncremental(firstFocus.id, {highlight:true});
+    for (let i = 0; i <= idx; i++) applyHopToGraph(i, false);
+    currentHopIndex = idx;
+  } else {
+    // forward: apply currentHopIndex+1 .. idx
+    for (let i = currentHopIndex + 1; i <= idx; i++) applyHopToGraph(i, true);
+    currentHopIndex = idx;
+  }
+  // Update hop list UI
+  document.querySelectorAll('.hop-item').forEach(el => { el.classList.remove('current','done'); });
+  for (let i = 0; i < currentHopIndex; i++) {
+    const el = document.getElementById('hop-'+i);
+    if (el) el.classList.add('done');
+    const nt = document.getElementById('newtag-'+i);
+    if (nt) nt.style.display = 'none';
+  }
+  const cur = document.getElementById('hop-'+currentHopIndex);
+  if (cur) { cur.classList.add('current'); cur.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+  // hide new tags for applied hops
+  for (let i = 0; i <= currentHopIndex; i++) {
+    const nt = document.getElementById('newtag-'+i);
+    if (nt) nt.style.display = 'none';
+  }
+  updateStepCounter();
+}
+
+function nextHop() { if (currentHopIndex < allHops.length - 1) jumpToHop(currentHopIndex + 1); }
+function prevHop() { if (currentHopIndex > 0) jumpToHop(currentHopIndex - 1); }
+
+function showAllHops() {
+  if (playTimer) { clearInterval(playTimer); playTimer = null; document.getElementById('btnPlay').textContent = '▶ 自动播放'; }
+  for (let i = currentHopIndex + 1; i < allHops.length; i++) applyHopToGraph(i, false);
+  currentHopIndex = allHops.length - 1;
+  document.querySelectorAll('.hop-item').forEach(el => { el.classList.remove('current','done'); el.classList.add('done'); });
+  const cur = document.getElementById('hop-'+currentHopIndex);
+  if (cur) { cur.classList.remove('done'); cur.classList.add('current'); }
+  document.querySelectorAll('.new-tag').forEach(el => el.style.display = 'none');
+  if (network) network.fit({ animation:{duration:600} });
+  updateStepCounter();
+}
+
+function autoPlay() {
+  const btn = document.getElementById('btnPlay');
+  if (playTimer) { clearInterval(playTimer); playTimer = null; btn.textContent = '▶ 自动播放'; return; }
+  btn.textContent = '⏸ 暂停';
+  if (currentHopIndex >= allHops.length - 1) {
+    // restart
+    initBuildingGraph();
+    const firstFocus = focusByBlock[0] && focusByBlock[0][0];
+    if (firstFocus) addNodeIncremental(firstFocus.id, {highlight:true});
+    currentHopIndex = -1;
+    document.querySelectorAll('.hop-item').forEach(el => { el.classList.remove('current','done'); });
+    document.querySelectorAll('.new-tag').forEach(el => el.style.display='inline-block');
+  }
+  playTimer = setInterval(() => {
+    if (currentHopIndex >= allHops.length - 1) {
+      clearInterval(playTimer); playTimer = null; btn.textContent = '▶ 自动播放'; return;
+    }
+    nextHop();
+  }, 1500);
+}
+
+function updateStepCounter() {
+  const c = document.getElementById('stepCounter');
+  c.textContent = (currentHopIndex + 1) + '/' + allHops.length;
+  document.getElementById('btnPrev').disabled = currentHopIndex <= 0;
+  document.getElementById('btnNext').disabled = currentHopIndex >= allHops.length - 1;
+}
+
+// ==================== Graph Controls ====================
+function showFullGraph() {
+  if (playTimer) { clearInterval(playTimer); playTimer=null; document.getElementById('btnPlay').textContent='▶ 自动播放'; }
+  renderFullGraph();
+}
+function resetView() { if (network) network.fit({ animation:{duration:500} }); }
+</script>
+</body>
+</html>

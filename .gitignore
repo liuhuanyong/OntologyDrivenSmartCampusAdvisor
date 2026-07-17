@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+.env
+
+# Logs
+logs/
+OntologyDrivenSmartCampusAdvisor/logs/
+
+# Cursor
+.cursor/

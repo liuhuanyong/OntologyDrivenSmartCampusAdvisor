@@ -1,0 +1,1613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>本体推理仪表盘 · Ontology-Driven Smart Campus Advisor</title>
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+/* ===== Reset & Base ===== */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg-root:#1a1d2e;
+  --bg-panel:#1e2235;
+  --bg-panel-alt:#232740;
+  --bg-card:#252845;
+  --bg-card-hover:#2a2f52;
+  --border:#2d3250;
+  --border-bright:#3d4470;
+  --text-primary:#e8eaf6;
+  --text-secondary:#9ba3c2;
+  --text-muted:#6b7394;
+  --accent:#7c6af7;
+  --accent-hover:#6a59e0;
+  --accent-dim:rgba(124,106,247,.18);
+  --accent-glow:rgba(124,106,247,.35);
+  --green:#4ade80;
+  --green-dim:rgba(74,222,128,.15);
+  --orange:#fb923c;
+  --orange-dim:rgba(251,146,60,.15);
+  --red:#f87171;
+  --red-dim:rgba(248,113,113,.15);
+  --blue:#60a5fa;
+  --blue-dim:rgba(96,165,250,.15);
+  --purple:#c084fc;
+  --purple-dim:rgba(192,132,252,.15);
+  --yellow:#fbbf24;
+  --yellow-dim:rgba(251,191,36,.15);
+  --cyan:#22d3ee;
+  --cyan-dim:rgba(34,211,238,.15);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Microsoft YaHei","PingFang SC",sans-serif;
+  --font-mono:"SF Mono",Menlo,Consolas,"Courier New",monospace;
+  --radius:10px;
+  --radius-sm:6px;
+  --shadow:0 4px 16px rgba(0,0,0,.4);
+  --transition:all .2s ease;
+}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:var(--font);
+  background:var(--bg-root);
+  color:var(--text-primary);
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ===== Header ===== */
+.header{
+  background:linear-gradient(135deg,#1a1040,#2d1b69,#1a1040);
+  border-bottom:1px solid var(--border-bright);
+  padding:0 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  height:52px;
+  flex-shrink:0;
+  position:relative;
+  z-index:100;
+  box-shadow:0 2px 12px rgba(124,106,247,.2);
+}
+.header::before{
+  content:"";
+  position:absolute;
+  bottom:0;left:0;right:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,#7c6af7,transparent);
+}
+.header-left{display:flex;align-items:center;gap:12px}
+.header-icon{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,#7c6af7,#c084fc);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+  box-shadow:0 0 12px var(--accent-glow);
+}
+.header h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:.3px}
+.header h1 span{color:var(--accent);margin-left:6px;font-weight:400;font-size:13px}
+.header-subtitle{font-size:11px;color:var(--text-muted);margin-left:12px;padding-left:12px;border-left:1px solid var(--border)}
+.header-right{display:flex;align-items:center;gap:16px}
+.stat-chip{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:4px 12px;
+  font-size:12px;
+  color:var(--text-secondary);
+}
+.stat-chip .val{color:var(--accent);font-weight:700;font-size:13px}
+.header-btns{display:flex;gap:6px}
+.header-btn{
+  font-size:12px;padding:5px 12px;
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--text-secondary);
+  cursor:pointer;
+  transition:var(--transition);
+}
+.header-btn:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.header-btn.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+
+/* ===== Main Layout ===== */
+.main{flex:1;display:flex;overflow:hidden;min-height:0}
+
+/* Left Sidebar */
+.sidebar{
+  width:288px;
+  min-width:220px;
+  max-width:380px;
+  background:var(--bg-panel);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  flex-shrink:0;
+}
+
+/* Resizer */
+.sidebar-resizer{
+  width:4px;cursor:col-resize;
+  background:transparent;
+  flex-shrink:0;
+  position:relative;
+  z-index:50;
+  transition:background .15s;
+}
+.sidebar-resizer:hover,.sidebar-resizer.dragging{background:var(--accent)}
+
+/* Right Content */
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;background:var(--bg-root)}
+
+/* ===== Sidebar Panels ===== */
+.sidebar-panel{
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  flex-shrink:0;
+}
+.sidebar-panel-header{
+  padding:10px 14px;
+  background:var(--bg-panel-alt);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+  flex-shrink:0;
+}
+.sidebar-panel-header .sp-icon{font-size:13px}
+.sidebar-panel-header .sp-title{font-size:12px;font-weight:700;color:var(--text-primary);flex:1;letter-spacing:.5px;text-transform:uppercase}
+.sidebar-panel-header .sp-badge{
+  font-size:10px;padding:2px 8px;
+  background:var(--accent-dim);
+  border:1px solid rgba(124,106,247,.3);
+  border-radius:10px;
+  color:var(--accent);
+  font-weight:600;
+}
+.sp-body{flex:1;overflow-y:auto;padding:12px}
+.sp-body::-webkit-scrollbar{width:4px}
+.sp-body::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:2px}
+.sp-body::-webkit-scrollbar-track{background:transparent}
+
+/* Pipeline Panel */
+#pipelinePanel{height:42%;border-bottom:1px solid var(--border)}
+#pipelinePanel .sp-body{padding:10px 12px}
+
+/* Chat Panel */
+#chatPanel{flex:1;border-bottom:1px solid var(--border);min-height:0}
+
+/* ===== Pipeline ===== */
+.pipeline-list{display:flex;flex-direction:column;gap:2px}
+.pipe-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:9px 10px;
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  transition:var(--transition);
+  position:relative;
+}
+.pipe-item:hover{background:var(--bg-card-hover);border-color:var(--border-bright)}
+.pipe-item.active{background:var(--accent-dim);border-color:var(--accent)}
+.pipe-item.done{opacity:.75}
+.pipe-connector{
+  position:absolute;left:17px;top:100%;width:2px;
+  background:var(--border-bright);
+  height:2px;
+}
+.pipe-item:last-child .pipe-connector{display:none}
+.pipe-dot{
+  width:26px;height:26px;
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;
+  flex-shrink:0;
+  position:relative;
+  z-index:1;
+}
+.pipe-dot.pending{background:var(--bg-card);border:2px solid var(--border-bright);color:var(--text-muted)}
+.pipe-dot.running{background:var(--accent-dim);border:2px solid var(--accent);color:var(--accent);animation:pulse 1.5s infinite}
+.pipe-dot.done{background:var(--green-dim);border:2px solid var(--green);color:var(--green)}
+.pipe-dot.fail{background:var(--red-dim);border:2px solid var(--red);color:var(--red)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--accent-glow)}50%{box-shadow:0 0 0 6px transparent}}
+.pipe-info{flex:1;min-width:0}
+.pipe-stage-name{font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pipe-meta{font-size:10.5px;color:var(--text-muted);display:flex;gap:8px;align-items:center}
+.pipe-meta .tag{padding:1px 5px;border-radius:4px;font-size:10px;font-weight:600}
+.pipe-meta .tag.ok{background:var(--green-dim);color:var(--green)}
+.pipe-meta .tag.running{background:var(--accent-dim);color:var(--accent)}
+.pipe-meta .tag.fail{background:var(--red-dim);color:var(--red)}
+.pipe-time{font-size:10px;color:var(--text-muted);margin-left:auto;flex-shrink:0;font-family:var(--font-mono)}
+
+/* ===== Chat ===== */
+#chatBody{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0}
+#chatBody::-webkit-scrollbar{width:4px}
+#chatBody::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:2px}
+.chat-msg{display:flex;flex-direction:column;gap:3px;animation:msgIn .25s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.chat-msg.user{align-items:flex-end}
+.chat-msg.assistant{align-items:flex-start}
+.chat-msg.system{align-items:center}
+.chat-role{font-size:10px;color:var(--text-muted);padding:0 4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.chat-bubble{
+  max-width:85%;
+  padding:8px 12px;
+  border-radius:var(--radius);
+  font-size:12.5px;
+  line-height:1.6;
+  word-break:break-word;
+}
+.chat-msg.user .chat-bubble{
+  background:linear-gradient(135deg,#7c6af7,#6a59e0);
+  color:#fff;
+  border-bottom-right-radius:3px;
+}
+.chat-msg.assistant .chat-bubble{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  color:var(--text-primary);
+  border-bottom-left-radius:3px;
+}
+.chat-msg.system .chat-bubble{
+  background:transparent;
+  color:var(--text-muted);
+  font-size:11px;
+  border:none;
+  text-align:center;
+}
+.chat-msg.system .chat-bubble::before{content:"··· ";color:var(--accent)}
+.chat-msg.system .chat-bubble::after{content:" ···";color:var(--accent)}
+.chat-time{font-size:9.5px;color:var(--text-muted);padding:0 4px}
+
+/* Thinking steps in chat */
+.thinking-step{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-left:3px solid var(--accent);
+  border-radius:var(--radius-sm);
+  padding:7px 10px;
+  margin-top:4px;
+  font-size:11px;
+  color:var(--text-secondary);
+  display:flex;align-items:flex-start;gap:7px;
+}
+.thinking-step .ts-icon{color:var(--accent);flex-shrink:0;margin-top:1px}
+.thinking-step .ts-text{color:var(--text-secondary)}
+.thinking-step .ts-result{color:var(--green);font-weight:600;margin-top:3px}
+
+/* Markdown 渲染样式 */
+.chat-bubble h1,.chat-bubble h2,.chat-bubble h3,.chat-bubble h4{margin:8px 0 4px;color:var(--text-primary);font-weight:600}
+.chat-bubble h1{font-size:15px}.chat-bubble h2{font-size:14px}.chat-bubble h3{font-size:13px}.chat-bubble h4{font-size:12px}
+.chat-bubble p{margin:4px 0}
+.chat-bubble ul,.chat-bubble ol{margin:6px 0;padding-left:20px}
+.chat-bubble li{margin:3px 0}
+.chat-bubble code{background:var(--bg-root);padding:2px 5px;border-radius:4px;font-size:11px;font-family:var(--font-mono);color:var(--accent)}
+.chat-bubble pre{background:var(--bg-root);padding:8px;border-radius:6px;overflow-x:auto;margin:6px 0}
+.chat-bubble pre code{background:none;padding:0;color:var(--text-primary)}
+.chat-bubble table{border-collapse:collapse;margin:8px 0;width:100%}
+.chat-bubble th,.chat-bubble td{border:1px solid var(--border);padding:5px 8px;text-align:left;font-size:11px}
+.chat-bubble th{background:var(--bg-panel-alt);font-weight:600;color:var(--accent)}
+.chat-bubble blockquote{border-left:3px solid var(--accent);padding-left:10px;margin:6px 0;color:var(--text-secondary)}
+.chat-bubble a{color:var(--accent);text-decoration:underline}
+.chat-bubble a:hover{color:var(--accent-hover)}
+.chat-bubble hr{border:none;border-top:1px solid var(--border);margin:10px 0}
+
+/* Chat Input */
+.chat-input-area{
+  padding:10px 12px;
+  background:var(--bg-panel-alt);
+  border-top:1px solid var(--border);
+  flex-shrink:0;
+  display:flex;align-items:center;gap:8px;
+}
+.chat-input-area input{
+  flex:1;
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:8px 12px;
+  font-size:12.5px;
+  color:var(--text-primary);
+  font-family:var(--font);
+  outline:none;
+  transition:var(--transition);
+}
+.chat-input-area input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-dim)}
+.chat-input-area input::placeholder{color:var(--text-muted)}
+.chat-send-btn{
+  width:34px;height:34px;
+  background:linear-gradient(135deg,#7c6af7,#6a59e0);
+  border:none;border-radius:var(--radius-sm);
+  color:#fff;font-size:14px;
+  cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:var(--transition);
+  box-shadow:0 2px 8px rgba(124,106,247,.3);
+}
+.chat-send-btn:hover{background:linear-gradient(135deg,#6a59e0,#5a4bd0);transform:translateY(-1px);box-shadow:0 4px 12px rgba(124,106,247,.4)}
+.chat-send-btn:active{transform:translateY(0)}
+
+/* ===== Top Content: Graph ===== */
+.graph-area{flex:1;display:flex;flex-direction:column;overflow:hidden;border-bottom:1px solid var(--border);min-height:0}
+.graph-toolbar{
+  padding:8px 14px;
+  background:var(--bg-panel);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+  flex-shrink:0;
+}
+.graph-toolbar-title{
+  font-size:12px;font-weight:700;color:var(--text-secondary);
+  display:flex;align-items:center;gap:6px;
+  flex:1;
+}
+.graph-toolbar-title::before{
+  content:"";
+  width:3px;height:14px;
+  background:linear-gradient(180deg,#7c6af7,#c084fc);
+  border-radius:2px;
+}
+.graph-mode-btns{display:flex;gap:4px}
+.mode-btn{
+  font-size:11px;padding:4px 10px;
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--text-secondary);
+  cursor:pointer;transition:var(--transition);
+  font-weight:500;
+}
+.mode-btn:hover{border-color:var(--accent);color:var(--accent)}
+.mode-btn.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.graph-hops-nav{display:flex;align-items:center;gap:4px}
+.hop-nav-btn{
+  font-size:11px;padding:3px 8px;
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--text-secondary);
+  cursor:pointer;transition:var(--transition);
+}
+.hop-nav-btn:hover{border-color:var(--blue);color:var(--blue)}
+.hop-nav-btn:disabled{opacity:.35;cursor:not-allowed}
+.hop-counter{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);min-width:44px;text-align:center}
+.graph-area-inner{flex:1;display:flex;overflow:hidden;min-height:0;position:relative}
+#graph-container{flex:1;position:relative;overflow:hidden}
+#mynetwork{width:100%;height:100%;background:transparent}
+.graph-status{
+  position:absolute;top:8px;left:10px;
+  background:rgba(30,34,53,.92);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:4px 10px;
+  font-size:11px;color:var(--text-muted);
+  backdrop-filter:blur(8px);
+  z-index:10;
+}
+.graph-status b{color:var(--accent)}
+.graph-legend{
+  position:absolute;bottom:10px;left:10px;
+  background:rgba(30,34,53,.92);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:8px 10px;
+  font-size:10.5px;
+  backdrop-filter:blur(8px);
+  z-index:10;
+  max-width:200px;
+}
+.graph-legend-title{font-weight:700;color:var(--text-secondary);margin-bottom:6px;font-size:11px;letter-spacing:.5px;text-transform:uppercase}
+.legend-item{display:flex;align-items:center;gap:6px;margin-bottom:3px;color:var(--text-secondary)}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.legend-line{width:18px;height:3px;border-radius:2px;flex-shrink:0}
+.legend-tag{
+  display:inline-block;padding:1px 5px;
+  border-radius:3px;font-size:9.5px;font-weight:700;
+  margin-left:4px;
+}
+#nodeInfo{
+  position:absolute;top:8px;right:10px;
+  background:rgba(30,34,53,.95);
+  border:1px solid var(--border-bright);
+  border-radius:var(--radius);
+  padding:10px 12px;
+  font-size:11.5px;
+  backdrop-filter:blur(8px);
+  z-index:10;
+  max-width:240px;
+  max-height:60%;
+  overflow-y:auto;
+  display:none;
+}
+#nodeInfo::-webkit-scrollbar{width:4px}
+#nodeInfo::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:2px}
+#nodeInfo h3{font-size:12.5px;color:var(--text-primary);margin-bottom:6px;font-weight:700}
+#nodeInfo .ni-type{display:inline-block;font-size:10px;padding:2px 7px;border-radius:8px;margin-bottom:7px;font-weight:700}
+#nodeInfo .ni-row{font-size:11px;color:var(--text-secondary);margin-bottom:2px}
+#nodeInfo .ni-row b{color:var(--text-primary)}
+
+/* ===== Bottom Panels ===== */
+.bottom-panels{display:flex;height:280px;flex-shrink:0;min-height:180px}
+.bottom-panel{
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  border-right:1px solid var(--border);
+}
+.bottom-panel:last-child{border-right:none}
+.bottom-panel-header{
+  padding:8px 14px;
+  background:var(--bg-panel);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+  flex-shrink:0;
+}
+.bp-icon{font-size:12px}
+.bp-title{font-size:12px;font-weight:700;color:var(--text-primary);flex:1;letter-spacing:.3px}
+.bp-count{
+  font-size:10px;padding:2px 8px;
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:var(--text-muted);
+  font-weight:600;
+}
+.bp-body{flex:1;overflow-y:auto;padding:10px 12px;min-height:0}
+.bp-body::-webkit-scrollbar{width:4px}
+.bp-body::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:2px}
+
+/* Plan Panel */
+#planPanel{flex:1.2;min-width:260px}
+.plan-step{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  margin-bottom:6px;
+  overflow:hidden;
+  transition:var(--transition);
+}
+.plan-step:hover{background:var(--bg-card-hover)}
+.plan-step-header{
+  padding:7px 10px;
+  display:flex;align-items:center;gap:8px;
+  cursor:pointer;
+}
+.plan-step-num{
+  width:20px;height:20px;
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;flex-shrink:0;
+}
+.plan-step.pass .plan-step-num{background:var(--green-dim);color:var(--green);border:1px solid rgba(74,222,128,.3)}
+.plan-step.fail .plan-step-num{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.plan-step.pending .plan-step-num{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(251,146,60,.3)}
+.plan-step-name{font-size:12px;font-weight:600;color:var(--text-primary);flex:1;font-family:var(--font-mono)}
+.plan-step-status{font-size:11px;padding:2px 8px;border-radius:8px;font-weight:700}
+.plan-step.pass .plan-step-status{background:var(--green-dim);color:var(--green)}
+.plan-step.fail .plan-step-status{background:var(--red-dim);color:var(--red)}
+.plan-step.pending .plan-step-status{background:var(--orange-dim);color:var(--orange)}
+.plan-step-body{
+  padding:0 10px 8px;
+  border-top:1px solid var(--border);
+  margin-top:0;
+  max-height:0;
+  overflow:hidden;
+  transition:max-height .25s ease,padding .25s ease;
+}
+.plan-step.expanded .plan-step-body{max-height:120px;padding:6px 10px 8px}
+.plan-step-detail{display:flex;gap:8px;margin-top:5px;font-size:10.5px}
+.plan-step-detail-label{color:var(--text-muted);flex-shrink:0;font-weight:600;text-transform:uppercase;letter-spacing:.3px;padding-top:1px}
+.plan-step-detail-value{color:var(--text-secondary)}
+.plan-step-detail-value b{color:var(--text-primary)}
+
+/* Evidence Panel */
+#evidencePanel{flex:1;min-width:200px}
+.evidence-block{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  margin-bottom:6px;
+  overflow:hidden;
+}
+.evidence-block-header{
+  padding:7px 10px;
+  background:var(--bg-panel-alt);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+  cursor:pointer;
+  transition:var(--transition);
+}
+.evidence-block-header:hover{background:var(--bg-card-hover)}
+.eb-rule-icon{
+  width:20px;height:20px;
+  background:var(--accent-dim);
+  border:1px solid rgba(124,106,247,.3);
+  border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:var(--accent);flex-shrink:0;
+}
+.eb-rule-name{font-size:12px;font-weight:700;color:var(--text-primary);flex:1;font-family:var(--font-mono)}
+.eb-toggle{font-size:11px;color:var(--text-muted);transition:transform .2s}
+.evidence-block.expanded .eb-toggle{transform:rotate(90deg)}
+.evidence-block-body{
+  max-height:0;overflow:hidden;
+  transition:max-height .25s ease;
+}
+.evidence-block.expanded .evidence-block-body{max-height:300px;overflow-y:auto}
+.eb-hops{padding:6px 0}
+.eb-hop{
+  padding:6px 10px;
+  border-left:2px solid var(--border);
+  margin-left:10px;
+  font-size:11px;
+  color:var(--text-secondary);
+  transition:var(--transition);
+}
+.eb-hop:hover{background:var(--bg-card-hover)}
+.eb-hop.highlight{border-left-color:var(--accent);background:var(--accent-dim)}
+.eb-hop-path{font-family:var(--font-mono);font-size:11px;color:var(--text-primary);margin-bottom:2px}
+.eb-hop-path .from{color:var(--blue);font-weight:600}
+.eb-hop-path .arrow{color:var(--accent);margin:0 4px}
+.eb-hop-path .pred{color:var(--purple);font-size:10.5px}
+.eb-hop-path .to{color:var(--green);font-weight:600}
+.eb-hop-reason{font-size:10.5px;color:var(--text-muted);margin-top:1px}
+.eb-conclusion{
+  padding:6px 10px;
+  background:var(--green-dim);
+  border-top:1px solid rgba(74,222,128,.2);
+  font-size:11px;color:var(--green);
+  font-weight:600;
+}
+
+/* ===== Answer Area (replaces chat for answered state) ===== */
+.answer-card{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:12px;
+  margin-top:8px;
+}
+.answer-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.answer-text{font-size:13px;color:var(--text-primary);line-height:1.7}
+.answer-text b{color:var(--accent)}
+
+/* ===== Loading ===== */
+.loading-overlay{
+  position:absolute;inset:0;
+  background:rgba(26,29,46,.7);
+  display:flex;align-items:center;justify-content:center;
+  z-index:100;
+  backdrop-filter:blur(4px);
+}
+.loading-spinner{
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.spinner-ring{
+  width:40px;height:40px;
+  border:3px solid var(--border-bright);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:12px;color:var(--text-muted)}
+
+/* ===== Collapsible cards in sidebar ===== */
+.collapsible{max-height:9999px;transition:max-height .3s ease,opacity .2s ease}
+.collapsible.collapsed{max-height:0;opacity:0;overflow:hidden}
+</style>
+</head>
+<body>
+
+<!-- ==================== HEADER ==================== -->
+<header class="header">
+  <div class="header-left">
+    <div class="header-icon">🧠</div>
+    <h1>本体推理仪表盘<span>· Ontology-Driven Smart Campus Advisor</span></h1>
+    <span class="header-subtitle" id="scenarioLabel">Procurement · SAP 采购管理智能体</span>
+  </div>
+  <div class="header-right">
+    <div class="stat-chip">实体 <span class="val" id="statEntities">--</span></div>
+    <div class="stat-chip">关系 <span class="val" id="statRelations">--</span></div>
+    <div class="stat-chip">规则 <span class="val" id="statRules">--</span></div>
+    <div class="header-btns">
+      <button class="header-btn active" id="btnCampus" onclick="switchScenario('campus')">Campus</button>
+      <!-- <button class="header-btn" id="btnWarehouse" onclick="switchScenario('warehouse')">Warehouse</button> -->
+      <button class="header-btn" id="btnProcurement" onclick="switchScenario('procurement')">Procurement</button>
+    </div>
+  </div>
+</header>
+
+<!-- ==================== MAIN ==================== -->
+<div class="main">
+
+  <!-- ===== LEFT SIDEBAR ===== -->
+  <div class="sidebar" id="sidebar">
+
+    <!-- Panel 1: Cognitive Pipeline -->
+    <!-- <div class="sidebar-panel" id="pipelinePanel">
+      <div class="sidebar-panel-header">
+        <span class="sp-icon">⚡</span>
+        <span class="sp-title">认知流程管道</span>
+        <span class="sp-badge" id="pipelineBadge">5 步</span>
+      </div>
+      <div class="sp-body" id="pipelineBody"> -->
+        <!-- Rendered by JS -->
+      <!-- </div>
+    </div> -->
+
+    <!-- Panel 4: Execution Simulation Chat -->
+    <div class="sidebar-panel" id="chatPanel">
+      <div class="sidebar-panel-header">
+        <span class="sp-icon">💬</span>
+        <span class="sp-title">执行模拟对话</span>
+        <span class="sp-badge" id="chatBadge">对话</span>
+      </div>
+      <div id="chatBody">
+        <!-- Initial welcome message -->
+        <div class="chat-msg system">
+          <span class="chat-bubble">欢迎使用本体推理仪表盘，请输入您的问题</span>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="questionInput" placeholder="例如：有哪些采购申请还在审批中？ " onkeydown="if(event.key==='Enter')doAsk()" />
+        <button class="chat-send-btn" id="askBtn" onclick="doAsk()">▶</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="sidebar-resizer" id="sidebarResizer"></div>
+
+  <!-- ===== RIGHT CONTENT ===== -->
+  <div class="content">
+
+    <!-- Panel 2: Ontology Reasoning Graph (Top) -->
+    <div class="graph-area">
+      <div class="graph-toolbar">
+        <div class="graph-toolbar-title">本体推理路径图谱</div>
+        <div class="graph-mode-btns">
+          <button class="mode-btn active" id="btnFullGraph" onclick="showFullGraph()">全图</button>
+          <button class="mode-btn" id="btnSubGraph" onclick="showSubGraph()">推理路径</button>
+        </div>
+        <div class="graph-hops-nav" id="hopsNav" style="display:none">
+          <button class="hop-nav-btn" id="btnPrevHop" onclick="prevHop()">◀</button>
+          <span class="hop-counter" id="hopCounter">1/5</span>
+          <button class="hop-nav-btn" id="btnNextHop" onclick="nextHop()">▶</button>
+          <button class="hop-nav-btn" onclick="showAllHops()">全部</button>
+          <button class="hop-nav-btn" id="btnAutoPlay" onclick="toggleAutoPlay()">▶ 自动</button>
+        </div>
+        <button class="mode-btn" onclick="resetGraphView()" title="重置视图">⟲ 重置</button>
+      </div>
+      <div class="graph-area-inner">
+        <div id="graph-container">
+          <div id="mynetwork"></div>
+        </div>
+        <div class="graph-status" id="graphStatus">图谱模式: <b>全图</b></div>
+        <div class="graph-legend" id="graphLegend">
+          <div class="graph-legend-title">图例</div>
+          <div id="legendItems"></div>
+        </div>
+        <div id="nodeInfo">
+          <h3 id="niTitle">--</h3>
+          <span class="ni-type" id="niType"></span>
+          <div id="niRows"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Panels: Plan + Evidence -->
+    <div class="bottom-panels">
+
+      <!-- Panel 3: Agent Execution Plan Verification -->
+      <div class="bottom-panel" id="planPanel">
+        <div class="bottom-panel-header">
+          <span class="bp-icon">📋</span>
+          <span class="bp-title">Agent 执行计划验证</span>
+          <span class="bp-count" id="planCount">0 步</span>
+        </div>
+        <div class="bp-body" id="planBody">
+          <div style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:20px">暂无执行计划</div>
+        </div>
+      </div>
+
+      <!-- Panel 5: Evidence & Justification -->
+      <div class="bottom-panel" id="evidencePanel">
+        <div class="bottom-panel-header">
+          <span class="bp-icon">📜</span>
+          <span class="bp-title">证据 / 论证面板</span>
+          <span class="bp-count" id="evidenceCount">0 条</span>
+        </div>
+        <div class="bp-body" id="evidenceBody">
+          <div style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:20px">暂无推理证据</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ==================== JAVASCRIPT ==================== -->
+<script>
+// ==================== CONFIG ====================
+const SCENARIO = new URLSearchParams(location.search).get('scenario') || location.pathname.split('/')[2] || 'campus';
+let currentScenario = SCENARIO;
+
+// ==================== GLOBAL STATE ====================
+let fullGraphData = null;
+let subgraphData = null;
+let network = null;
+let nodeDataSet = null;
+let edgeDataSet = null;
+let allHops = [];
+let currentHopIndex = -1;
+let autoPlayTimer = null;
+let graphMode = 'full';
+let loadingOverlay = null;
+
+// Entity colors per type
+const ENTITY_COLORS = {
+  Student:'#60a5fa',Course:'#4ade80',Professor:'#f472b6',
+  Department:'#fb923c',Major:'#a78bfa',Career:'#fbbf24',
+  Skill:'#34d399',default:'#94a3b8'
+};
+const EDGE_COLORS = {
+  prerequisite_of:'#f59e0b',takes:'#60a5fa',has_skill:'#4ade80',
+  teaches_skill:'#34d399',requires_skill:'#f87171',leads_to:'#a78bfa',
+  requires_course:'#f59e0b',targets_career:'#f87171',enrolled_in:'#a78bfa',
+  taught_by:'#f472b6',teaches:'#f472b6',offered_by:'#6366f1',
+  belongs_to:'#6366f1',major_in_dept:'#6366f1',default:'#64748b'
+};
+
+// ==================== STATIC MOCK DATA ====================
+// Campus scenario mock data - rich, realistic
+const MOCK_DATA = {
+  campus: {
+    question: 'Alice 下学期该修什么课？',
+    pipeline: [
+      { stage:'用户请求解析',icon:'💬',status:'done',duration:'8ms',detail:'提取到学生: Alice' },
+      { stage:'意图识别',icon:'🧠',status:'done',duration:'12ms',detail:'意图: recommend_courses (推荐课程)' },
+      { stage:'规则链匹配',icon:'🔗',status:'done',duration:'18ms',detail:'R6 (完成度) → R3 (推荐)' },
+      { stage:'本体图谱推理',icon:'🔍',status:'done',duration:'34ms',detail:'遍历 18 门课程,3 次图游走' },
+      { stage:'答案生成',icon:'✅',status:'done',duration:'6ms',detail:'推荐 3 门课程: CS305/ML301/STAT302' }
+    ],
+    hops: [
+      { from:'student:alice',fromLabel:'Alice',predicate:'enrolled_in',to:'major:cs',toLabel:'计算机科学',reason:'Alice  enrolled_in CS 专业',highlight:true },
+      { from:'major:cs',fromLabel:'CS',predicate:'requires_course',to:'course:cs101',toLabel:'程序设计基础',reason:'CS  requires CS101',highlight:true },
+      { from:'student:alice',fromLabel:'Alice',predicate:'takes',to:'course:cs101',toLabel:'程序设计基础',reason:'已通过, 成绩 A',passed:true },
+      { from:'major:cs',fromLabel:'CS',predicate:'requires_course',to:'course:cs201',toLabel:'数据结构',reason:'CS  requires CS201',highlight:true },
+      { from:'student:alice',fromLabel:'Alice',predicate:'takes',to:'course:cs201',toLabel:'数据结构',reason:'已通过, 成绩 B+',passed:true },
+      { from:'course:cs201',fromLabel:'CS201',predicate:'prerequisite_of',to:'course:cs305',toLabel:'计算机网络',reason:'先修链: CS201 → CS305',highlight:true },
+      { from:'student:alice',fromLabel:'Alice',predicate:'takes',to:'course:cs305',toLabel:'计算机网络',reason:'未修过, 先修已满足',answer:true },
+      { from:'course:cs201',fromLabel:'CS201',predicate:'prerequisite_of',to:'course:ml301',toLabel:'机器学习',reason:'先修链: CS201 → ML301',highlight:true },
+      { from:'student:alice',fromLabel:'Alice',predicate:'takes',to:'course:ml301',toLabel:'机器学习',reason:'未修过, 先修已满足',answer:true },
+      { from:'course:stat201',fromLabel:'STAT201',predicate:'prerequisite_of',to:'course:ml301',toLabel:'机器学习',reason:'先修链: STAT201 → ML301',highlight:true },
+      { from:'student:alice',fromLabel:'Alice',predicate:'takes',to:'course:stat201',toLabel:'概率统计',reason:'已通过, 成绩 B',passed:true },
+    ],
+    plan: [
+      { step:1,action:'R6_major_completion',desc:'计算专业必修课完成度',preconditions:['student:alice 存在','major:cs 存在'],postconditions:['完成率 83% (5/6)'],status:'pass' },
+      { step:2,action:'R3_recommend_next_courses',desc:'推荐下一批可修课程',preconditions:['R6 执行完毕','完成度 > 0'],postconditions:['推荐列表: CS305, ML301, STAT302'],status:'pass' }
+    ],
+    chat: [
+      { role:'user',content:'Alice 下学期该修什么课？' },
+      { role:'system',content:'正在解析用户请求...' },
+      { role:'assistant',content:'好的，让我来分析 Alice 的学业情况和推荐合适的课程。',thinking:'开始执行 R6_major_completion 规则...' },
+      { role:'system',content:'完成度分析: Alice 已完成 5/6 专业必修课' },
+      { role:'assistant',content:'根据学业进度分析，Alice 接下来可以选修以下课程：\n\n📗 CS305 计算机网络\n📗 ML301 机器学习\n📗 STAT302 高级统计',thinking:'R6 规则执行完成,继续 R3 推荐课程...' }
+    ],
+    evidence: [
+      { rule:'R6_major_completion',ruleLabel:'R6 专业完成度',conclusion:'Alice 已完成 83% (5/6) 专业必修课',facts:[
+        { from:'Alice',pred:'已通过',to:'CS101 程序设计基础',reason:'成绩 A',status:'pass' },
+        { from:'Alice',pred:'已通过',to:'CS201 数据结构',reason:'成绩 B+',status:'pass' },
+        { from:'Alice',pred:'已通过',to:'MATH101 高等数学',reason:'成绩 A-',status:'pass' },
+        { from:'Alice',pred:'已通过',to:'STAT201 概率统计',reason:'成绩 B',status:'pass' },
+        { from:'Alice',pred:'已通过',to:'CS301 操作系统',reason:'成绩 B+',status:'pass' },
+        { from:'CS305',pred:'先修未满足',to:'CS401 高级算法',reason:'缺 CS305',status:'fail' }
+      ]},
+      { rule:'R3_recommend_next_courses',ruleLabel:'R3 推荐课程',conclusion:'推荐 CS305, ML301, STAT302',facts:[
+        { from:'Alice',pred:'可修',to:'CS305 计算机网络',reason:'先修 CS201 已通过',status:'pass' },
+        { from:'Alice',pred:'可修',to:'ML301 机器学习',reason:'先修 CS201+STAT201 已通过',status:'pass' },
+        { from:'Alice',pred:'可修',to:'STAT302 高级统计',reason:'先修 STAT201 已通过',status:'pass' }
+      ]}
+    ],
+    graphNodes: [
+      { id:'student:alice',label:'Alice',type:'Student',color:ENTITY_COLORS.Student },
+      { id:'major:cs',label:'CS\n计算机科学',type:'Major',color:ENTITY_COLORS.Major },
+      { id:'course:cs101',label:'CS101\n程序设计基础',type:'Course',color:ENTITY_COLORS.Course },
+      { id:'course:cs201',label:'CS201\n数据结构',type:'Course',color:ENTITY_COLORS.Course },
+      { id:'course:cs305',label:'CS305\n计算机网络',type:'Course',color:ENTITY_COLORS.Course },
+      { id:'course:ml301',label:'ML301\n机器学习',type:'Course',color:ENTITY_COLORS.Course },
+      { id:'course:stat201',label:'STAT201\n概率统计',type:'Course',color:ENTITY_COLORS.Course },
+      { id:'course:cs301',label:'CS301\n操作系统',type:'Course',color:ENTITY_COLORS.Course },
+    ],
+    graphEdges: [
+      { from:'student:alice',to:'major:cs',label:'enrolled_in',color:EDGE_COLORS.enrolled_in },
+      { from:'major:cs',to:'course:cs101',label:'requires_course',color:EDGE_COLORS.requires_course },
+      { from:'student:alice',to:'course:cs101',label:'takes (A)',color:EDGE_COLORS.takes },
+      { from:'major:cs',to:'course:cs201',label:'requires_course',color:EDGE_COLORS.requires_course },
+      { from:'student:alice',to:'course:cs201',label:'takes (B+)',color:EDGE_COLORS.takes },
+      { from:'course:cs201',to:'course:cs305',label:'prerequisite_of',color:EDGE_COLORS.prerequisite_of },
+      { from:'student:alice',to:'course:cs305',label:'takes ← 推荐',color:EDGE_COLORS.takes },
+      { from:'course:cs201',to:'course:ml301',label:'prerequisite_of',color:EDGE_COLORS.prerequisite_of },
+      { from:'course:stat201',to:'course:ml301',label:'prerequisite_of',color:EDGE_COLORS.prerequisite_of },
+      { from:'student:alice',to:'course:stat201',label:'takes (B)',color:EDGE_COLORS.takes },
+      { from:'student:alice',to:'course:ml301',label:'takes ← 推荐',color:EDGE_COLORS.takes },
+    ]
+  },
+  warehouse: {
+    question: 'RM001 怎么安排入库？',
+    pipeline: [
+      { stage:'用户请求解析',icon:'💬',status:'done',duration:'6ms',detail:'提取物料: RM001 原材料' },
+      { stage:'意图识别',icon:'🧠',status:'done',duration:'9ms',detail:'意图: inbound_plan (入库安排)' },
+      { stage:'规则链匹配',icon:'🔗',status:'done',duration:'14ms',detail:'R1 (入库) → R3 (仓位)' },
+      { stage:'本体图谱推理',icon:'🔍',status:'done',duration:'28ms',detail:'查询物料属性,工厂仓位规则' },
+      { stage:'答案生成',icon:'✅',status:'done',duration:'5ms',detail:'入库计划: 深圳仓 A区-01-03' }
+    ],
+    hops: [
+      { from:'material:rm001',fromLabel:'RM001 原材料',predicate:'has_type',to:'material_type:raw',toLabel:'原材料',reason:'物料类型确认',highlight:true },
+      { from:'material:rm001',fromLabel:'RM001',predicate:'requires_storage',to:'storage:climate',toLabel:'恒温仓储',reason:'原材料需恒温存储',highlight:true },
+      { from:'factory:shenzhen',fromLabel:'深圳工厂',predicate:'has_zone',to:'zone:a',toLabel:'A区',reason:'A区可用仓位',highlight:true },
+      { from:'zone:a',fromLabel:'A区',predicate:'available_capacity',to:'bin:a-01-03',toLabel:'A-01-03仓位',reason:'仓位容量充足',passed:true },
+    ],
+    plan: [
+      { step:1,action:'R1_inbound_plan',desc:'生成入库计划',preconditions:['物料 RM001 存在'],postconditions:['入库批次 IB-2026-0089'],status:'pass' },
+      { step:2,action:'R3_bin_assignment',desc:'分配仓位',preconditions:['R1 执行完毕'],postconditions:['仓位: A-01-03'],status:'pass' }
+    ],
+    chat: [
+      { role:'user',content:'RM001 怎么安排入库？' },
+      { role:'system',content:'正在分析物料属性和仓位规则...' },
+      { role:'assistant',content:'根据 RM001（电子原材料）的属性和存储要求，为您安排如下入库计划：\n\n🏭 入库批次: IB-2026-0089\n📍 仓库: 深圳工厂\n🗄️ 仓位: A区-01-03（恒温区）\n📋 操作: 质检后上架' }
+    ],
+    evidence: [
+      { rule:'R1_inbound_plan',ruleLabel:'R1 入库计划',conclusion:'批次 IB-2026-0089, 深圳仓 A区-01-03',facts:[
+        { from:'RM001',pred:'物料类型',to:'原材料',reason:'电子元器件',status:'pass' },
+        { from:'RM001',pred:'存储要求',to:'恒温恒湿',reason:'需 18-25°C',status:'pass' },
+        { from:'深圳仓',pred:'可用仓位',to:'A-01-03',reason:'容量 2000㎡',status:'pass' }
+      ]}
+    ],
+    graphNodes: [
+      { id:'material:rm001',label:'RM001\n电子原材料',type:'Material',color:'#60a5fa' },
+      { id:'factory:shenzhen',label:'深圳工厂',type:'Factory',color:'#f472b6' },
+      { id:'zone:a',label:'A区 恒温',type:'Zone',color:'#4ade80' },
+      { id:'bin:a-01-03',label:'A-01-03\n仓位',type:'Bin',color:'#fbbf24' },
+    ],
+    graphEdges: [
+      { from:'material:rm001',to:'factory:shenzhen',label:'supplied_to',color:'#f472b6' },
+      { from:'factory:shenzhen',to:'zone:a',label:'has_zone',color:'#4ade80' },
+      { from:'zone:a',to:'bin:a-01-03',label:'contains',color:'#fbbf24' },
+    ]
+  },
+  procurement: {
+    question: '帮我创建一个采购申请: 电子元件-主控芯片 STM32 2000个',
+    pipeline: [
+      { stage:'用户请求解析',icon:'💬',status:'done',duration:'7ms',detail:'物料: STM32, 数量: 2000' },
+      { stage:'意图识别',icon:'🧠',status:'done',duration:'11ms',detail:'意图: create_pr (创建采购申请)' },
+      { stage:'规则链匹配',icon:'🔗',status:'done',duration:'16ms',detail:'R1 (PR创建) → R2 (预算校验)' },
+      { stage:'本体图谱推理',icon:'🔍',status:'done',duration:'22ms',detail:'查询供应商,预算,审批流' },
+      { stage:'答案生成',icon:'✅',status:'done',duration:'4ms',detail:'PR-2026-00125 已创建,待审批' }
+    ],
+    hops: [
+      { from:'material:m1001',fromLabel:'STM32主控芯片',predicate:'has_supplier',to:'supplier:s001',toLabel:'华强电子',reason:'首选供应商',highlight:true },
+      { from:'supplier:s001',fromLabel:'华强电子',predicate:'provides',to:'material:m1001',toLabel:'STM32',reason:'供应关系确认',highlight:true },
+      { from:'material:m1001',fromLabel:'STM32',predicate:'unit_price',to:'price:8.5',toLabel:'¥8.5/个',reason:'含税单价',passed:true },
+    ],
+    plan: [
+      { step:1,action:'R1_create_PR',desc:'创建采购申请',preconditions:['物料信息完整'],postconditions:['PR-2026-00125 已创建'],status:'pass' },
+      { step:2,action:'R2_budget_check',desc:'预算校验',preconditions:['PR 已创建'],postconditions:['预算充足,待审批'],status:'pass' }
+    ],
+    chat: [
+      { role:'user',content:'帮我创建一个采购申请: 电子元件-主控芯片 STM32 2000个' },
+      { role:'system',content:'正在查询供应商和库存信息...' },
+      { role:'assistant',content:'已为您创建采购申请 PR-2026-00125\n\n📦 物料: STM32 主控芯片 (M1001)\n🔢 数量: 2000 个\n💰 预估金额: ¥17,000\n🏭 供应商: 华强电子\n📋 当前状态: 待部门经理审批' }
+    ],
+    evidence: [
+      { rule:'R1_create_PR',ruleLabel:'R1 创建PR',conclusion:'PR-2026-00125 创建成功',facts:[
+        { from:'STM32 M1001',pred:'首选供应商',to:'华强电子 S001',reason:'长期合作供应商',status:'pass' },
+        { from:'M1001',pred:'单价',to:'¥8.5/个',reason:'最近采购价',status:'pass' },
+        { from:'总价',pred:'¥17,000',to:'预算 ¥50,000',reason:'预算充足',status:'pass' }
+      ]}
+    ],
+    graphNodes: [
+      { id:'material:m1001',label:'STM32 M1001\n主控芯片',type:'Material',color:'#60a5fa' },
+      { id:'supplier:s001',label:'华强电子',type:'Supplier',color:'#4ade80' },
+      { id:'pr:125',label:'PR-2026-00125\n采购申请',type:'PR',color:'#fbbf24' },
+    ],
+    graphEdges: [
+      { from:'pr:125',to:'material:m1001',label:'requests',color:'#60a5fa' },
+      { from:'material:m1001',to:'supplier:s001',label:'has_supplier',color:'#4ade80' },
+    ]
+  }
+};
+
+// ==================== SCENARIO LABELS ====================
+const SCENARIO_LABELS = {
+  campus:'Campus · 智慧校园课程与职业规划',
+  warehouse:'Warehouse · SAP 操作自动化智能体',
+  procurement:'Procurement · SAP 采购管理智能体'
+};
+
+// ==================== INIT ====================
+window.onload = async function() {
+  renderPipeline(MOCK_DATA[SCENARIO].pipeline);
+  await loadStats();
+  await loadFullGraph();
+  initSidebarResizer();
+  initLegend();
+};
+
+// ==================== SIDEBAR RESIZER ====================
+function initSidebarResizer() {
+  const resizer = document.getElementById('sidebarResizer');
+  const sidebar = document.getElementById('sidebar');
+  const main = document.querySelector('.main');
+  let isDragging = false;
+
+  resizer.addEventListener('mousedown', function(e) {
+    isDragging = true;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    const rect = main.getBoundingClientRect();
+    let newWidth = e.clientX - rect.left;
+    const minW = 200;
+    const maxW = 450;
+    if (newWidth < minW) newWidth = minW;
+    if (newWidth > maxW) newWidth = maxW;
+    sidebar.style.width = newWidth + 'px';
+    if (network) setTimeout(() => { try { network.redraw(); network.fit({animation:false}); } catch(e){} }, 0);
+  });
+
+  document.addEventListener('mouseup', function() {
+    if (isDragging) {
+      isDragging = false;
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      if (network) setTimeout(() => { try { network.fit({animation:{duration:300}}); } catch(e){} }, 50);
+    }
+  });
+}
+
+// ==================== STATS ====================
+async function loadStats() {
+  try {
+    const resp = await fetch(`/api/${currentScenario}/stats`);
+    const data = await resp.json();
+    document.getElementById('statEntities').textContent = data.kg.entities;
+    document.getElementById('statRelations').textContent = data.kg.relations;
+    document.getElementById('statRules').textContent = data.rules;
+  } catch(e) {
+    document.getElementById('statEntities').textContent = '?';
+    document.getElementById('statRelations').textContent = '?';
+    document.getElementById('statRules').textContent = '?';
+  }
+}
+
+// ==================== FULL GRAPH ====================
+async function loadFullGraph() {
+  try {
+    const resp = await fetch(`/api/${currentScenario}/graph`);
+    fullGraphData = await resp.json();
+    renderFullGraph();
+  } catch(e) {
+    console.error('加载图谱失败', e);
+  }
+}
+
+function renderFullGraph() {
+  const container = document.getElementById('mynetwork');
+  if (!fullGraphData) return;
+
+  const nodes = fullGraphData.nodes.map(n => ({
+    id: n.id, label: n.label,
+    color: { background: n.color || ENTITY_COLORS[n.type] || ENTITY_COLORS.default, border: n.color || '#000', highlight: { background: '#fff', border: n.color || ENTITY_COLORS.default } },
+    font: { color: '#e8eaf6', size: 11, face: 'sans-serif' },
+    borderWidth: 1.5,
+    shape: 'dot',
+    size: n.type === 'Student' ? 14 : n.type === 'Course' ? 12 : n.type === 'Professor' ? 11 : 10,
+  }));
+
+  const edges = fullGraphData.edges.map(e => ({
+    id: e.id, from: e.from, to: e.to, label: e.label || '',
+    color: { color: e.color || EDGE_COLORS[e.label] || EDGE_COLORS.default, highlight: '#7c6af7', hover: '#fff' },
+    font: { color: '#9ba3c2', size: 9, face: 'sans-serif', strokeWidth: 0 },
+    arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+    smooth: { type: 'continuous' },
+  }));
+
+  const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+  const options = {
+    physics: { enabled: false },
+    interaction: { hover: true, tooltipDelay: 200 },
+    nodes: { shadow: { enabled: true, color: 'rgba(0,0,0,0.4)', size: 4, x: 2, y: 2 } },
+    edges: { width: 1 },
+    layout: { improvedLayout: true },
+  };
+
+  if (network) { network.destroy(); network = null; }
+  nodeDataSet = data.nodes;
+  edgeDataSet = data.edges;
+  network = new vis.Network(container, data, options);
+
+  network.on('click', function(params) {
+    const info = document.getElementById('nodeInfo');
+    if (params.nodes.length > 0) {
+      const nodeId = params.nodes[0];
+      const node = fullGraphData.nodes.find(n => n.id === nodeId);
+      if (node) showNodeInfo(node);
+    } else {
+      info.style.display = 'none';
+    }
+  });
+}
+
+function showNodeInfo(node) {
+  const info = document.getElementById('nodeInfo');
+  document.getElementById('niTitle').textContent = node.label;
+  const color = node.color || ENTITY_COLORS[node.type] || '#7c6af7';
+  document.getElementById('niType').textContent = node.type;
+  document.getElementById('niType').style.cssText = `background:${color}22;color:${color};border:1px solid ${color}44`;
+  const rows = document.getElementById('niRows');
+  rows.innerHTML = '';
+  if (node.attrs) {
+    Object.entries(node.attrs).forEach(([k, v]) => {
+      rows.innerHTML += `<div class="ni-row"><b>${k}:</b> ${Array.isArray(v)?v.join(', '):v}</div>`;
+    });
+  }
+  info.style.display = 'block';
+}
+
+function resetGraphView() {
+  if (network) network.fit({ animation: { duration: 400 } });
+}
+
+// ==================== GRAPH LEGEND ====================
+function initLegend() {
+  const legend = document.getElementById('legendItems');
+  const types = [
+    { label:'Student', color:'#60a5fa' },
+    { label:'Course', color:'#4ade80' },
+    { label:'Professor', color:'#f472b6' },
+    { label:'Major', color:'#a78bfa' },
+    { label:'Career', color:'#fbbf24' },
+    { label:'Skill', color:'#34d399' },
+  ];
+  legend.innerHTML = types.map(t =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${t.color}"></div>${t.label}</div>`
+  ).join('');
+}
+
+// ==================== PIPELINE RENDERING ====================
+function renderPipeline(pipeline) {
+  const body = document.getElementById('pipelineBody');
+  const badge = document.getElementById('pipelineBadge');
+  if (!body || !badge) return;
+  badge.textContent = `${pipeline.length} 步`;
+  body.innerHTML = '<div class="pipeline-list">' +
+    pipeline.map((p, i) => {
+      const dotClass = p.status === 'done' ? 'done' : p.status === 'running' ? 'running' : p.status === 'fail' ? 'fail' : 'pending';
+      return `<div class="pipe-item ${p.status}" data-stage="${i}">
+        <div class="pipe-dot ${dotClass}">${p.icon}</div>
+        <div class="pipe-info">
+          <div class="pipe-stage-name">${p.stage}</div>
+          <div class="pipe-meta">
+            <span class="tag ${dotClass === 'done'?'ok':dotClass === 'running'?'running':dotClass === 'fail'?'fail':''}">${p.status === 'done'?'完成':p.status === 'running'?'进行中':p.status === 'fail'?'失败':'等待'}</span>
+            ${p.detail ? `<span style="font-size:10px;color:var(--text-muted)">${p.detail}</span>` : ''}
+          </div>
+        </div>
+        <span class="pipe-time">${p.duration}</span>
+      </div>`;
+    }).join('') + '</div>';
+}
+
+// ==================== PLAN RENDERING ====================
+function renderPlan(plan) {
+  const body = document.getElementById('planBody');
+  const count = document.getElementById('planCount');
+  count.textContent = `${plan.length} 步`;
+  if (!plan.length) {
+    body.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:20px">暂无执行计划</div>';
+    return;
+  }
+  body.innerHTML = plan.map(p => `
+    <div class="plan-step ${p.status}" onclick="togglePlanStep(this)">
+      <div class="plan-step-header">
+        <div class="plan-step-num">${p.step}</div>
+        <span class="plan-step-name">${p.action}</span>
+        <span class="plan-step-status">${p.status === 'pass'?'✓ 通过':p.status === 'fail'?'✗ 失败':'○ 待验证'}</span>
+      </div>
+      <div class="plan-step-body">
+        <div class="plan-step-detail">
+          <span class="plan-step-detail-label">说明</span>
+          <span class="plan-step-detail-value">${p.desc}</span>
+        </div>
+        <div class="plan-step-detail">
+          <span class="plan-step-detail-label">前置</span>
+          <span class="plan-step-detail-value">${p.preconditions.join(', ')}</span>
+        </div>
+        <div class="plan-step-detail">
+          <span class="plan-step-detail-label">后置</span>
+          <span class="plan-step-detail-value">${p.postconditions.join(', ')}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function togglePlanStep(el) {
+  el.classList.toggle('expanded');
+}
+
+// ==================== EVIDENCE RENDERING ====================
+function renderEvidence(evidence) {
+  const body = document.getElementById('evidenceBody');
+  const count = document.getElementById('evidenceCount');
+  count.textContent = `${evidence.length} 条`;
+  if (!evidence.length) {
+    body.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:20px">暂无推理证据</div>';
+    return;
+  }
+  body.innerHTML = evidence.map((e, i) => `
+    <div class="evidence-block" id="eb-${i}">
+      <div class="evidence-block-header" onclick="toggleEvidence(${i})">
+        <div class="eb-rule-icon">⚙</div>
+        <span class="eb-rule-name">${e.rule}</span>
+        <span style="font-size:10px;color:var(--text-muted)">${e.ruleLabel}</span>
+        <span class="eb-toggle">▶</span>
+      </div>
+      <div class="evidence-block-body">
+        <div class="eb-hops">
+          ${e.facts.map(f => `
+            <div class="eb-hop ${f.status === 'pass' ? 'highlight' : f.status === 'fail' ? '' : ''}">
+              <div class="eb-hop-path">
+                <span class="from">${f.from}</span>
+                <span class="arrow">→</span>
+                <span class="pred">[${f.pred}]</span>
+                <span class="arrow">→</span>
+                <span class="to">${f.to}</span>
+                ${f.status === 'pass' ? '<span style="color:var(--green);font-size:10px;margin-left:4px">✓</span>' : '<span style="color:var(--red);font-size:10px;margin-left:4px">✗</span>'}
+              </div>
+              <div class="eb-hop-reason">${f.reason}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="eb-conclusion">结论: ${e.conclusion}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleEvidence(idx) {
+  const el = document.getElementById('eb-' + idx);
+  if (el) el.classList.toggle('expanded');
+}
+
+// ==================== CHAT RENDERING ====================
+function appendChat(msg) {
+  const body = document.getElementById('chatBody');
+  const div = document.createElement('div');
+  div.className = `chat-msg ${msg.role}`;
+  let html = '';
+  if (msg.role === 'system') {
+    html = `<span class="chat-bubble">${escapeHtml(msg.content)}</span>`;
+  } else if (msg.role === 'user') {
+    html = `<div class="chat-bubble">${escapeHtml(msg.content)}</div>`;
+  } else {
+    html = `<div class="chat-bubble">${formatAnswer(msg.content)}`;
+    if (msg.thinking) {
+      html += `<div class="thinking-step"><span class="ts-icon">💭</span><div><span class="ts-text">${escapeHtml(msg.thinking)}</span></div></div>`;
+    }
+    html += '</div>';
+  }
+  div.innerHTML = html;
+  body.appendChild(div);
+  body.scrollTop = body.scrollHeight;
+  return div;
+}
+
+// 配置 marked.js
+marked.setOptions({
+  breaks: true,        // 自动转换换行符为 <br>
+  gfm: true,           // GitHub 风格 Markdown
+  headerIds: false,    // 禁用标题 ID（避免 XSS）
+  mangle: false,       // 禁用 Email 编码
+});
+
+function formatAnswer(text) {
+  if (!text) return '';
+  // 使用 marked.js 渲染 Markdown
+  const escaped = escapeHtml(text);
+  return marked.parse(escaped);
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function clearChat() {
+  const body = document.getElementById('chatBody');
+  body.innerHTML = '';
+}
+
+// ==================== SUBGRAPH (推理路径图谱) ====================
+function renderSubGraph(mockData) {
+  const nodes = mockData.graphNodes.map(n => ({
+    id: n.id, label: n.label,
+    color: { background: n.color, border: n.color, highlight: { background: '#fff', border: n.color } },
+    font: { color: '#e8eaf6', size: 11 },
+    borderWidth: 2,
+    shape: 'dot',
+    size: n.type === 'Student' || n.type === 'Material' ? 16 : 13,
+  }));
+
+  const edges = mockData.graphEdges.map((e, i) => ({
+    id: 'e' + i, from: e.from, to: e.to, label: e.label,
+    color: { color: e.color, highlight: '#7c6af7', hover: '#fff' },
+    font: { color: '#9ba3c2', size: 9, strokeWidth: 0 },
+    arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+    dashes: false,
+  }));
+
+  const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+  const options = {
+    physics: { enabled: false },
+    interaction: { hover: true },
+    nodes: { shadow: { enabled: true, color: 'rgba(0,0,0,0.4)', size: 4, x: 2, y: 2 } },
+    layout: { improvedLayout: true },
+  };
+
+  if (network) { network.destroy(); network = null; }
+  nodeDataSet = data.nodes;
+  edgeDataSet = data.edges;
+  network = new vis.Network(document.getElementById('mynetwork'), data, options);
+  network.on('click', function(params) {
+    const info = document.getElementById('nodeInfo');
+    if (params.nodes.length > 0) {
+      const nodeId = params.nodes[0];
+      const node = mockData.graphNodes.find(n => n.id === nodeId);
+      if (node) {
+        document.getElementById('niTitle').textContent = node.label.replace('\n', ' ');
+        const niType = document.getElementById('niType');
+        niType.textContent = node.type;
+        niType.style.cssText = `background:${node.color}22;color:${node.color};border:1px solid ${node.color}44`;
+        document.getElementById('niRows').innerHTML = `<div class="ni-row"><b>类型:</b> ${node.type}</div>`;
+        info.style.display = 'block';
+      }
+    } else {
+      info.style.display = 'none';
+    }
+  });
+}
+
+// ==================== HOP NAVIGATION ====================
+function showSubGraph() {
+  graphMode = 'subgraph';
+  document.getElementById('btnFullGraph').classList.remove('active');
+  document.getElementById('btnSubGraph').classList.add('active');
+  document.getElementById('hopsNav').style.display = 'flex';
+  document.getElementById('graphStatus').innerHTML = '图谱模式: <b>推理路径</b>';
+
+  const mock = MOCK_DATA[currentScenario];
+  allHops = mock.hops;
+  currentHopIndex = -1;
+  renderSubGraph(mock);
+  document.getElementById('graphLegend').style.display = 'none';
+}
+
+function showFullGraph() {
+  graphMode = 'full';
+  document.getElementById('btnFullGraph').classList.add('active');
+  document.getElementById('btnSubGraph').classList.remove('active');
+  document.getElementById('hopsNav').style.display = 'none';
+  document.getElementById('graphStatus').innerHTML = '图谱模式: <b>全图</b>';
+  document.getElementById('graphLegend').style.display = 'block';
+  if (fullGraphData) renderFullGraph();
+}
+
+function prevHop() {
+  if (currentHopIndex > 0) jumpToHop(currentHopIndex - 1);
+}
+function nextHop() {
+  if (currentHopIndex < allHops.length - 1) jumpToHop(currentHopIndex + 1);
+}
+function jumpToHop(idx) {
+  currentHopIndex = idx;
+  updateHopCounter();
+  // Highlight hop in graph
+  if (network) {
+    const hop = allHops[idx];
+    // Highlight the edge
+    network.fit({ animation: { duration: 300 } });
+  }
+}
+function showAllHops() {
+  currentHopIndex = allHops.length - 1;
+  updateHopCounter();
+}
+function updateHopCounter() {
+  document.getElementById('hopCounter').textContent = `${currentHopIndex + 1}/${allHops.length}`;
+  document.getElementById('btnPrevHop').disabled = currentHopIndex <= 0;
+  document.getElementById('btnNextHop').disabled = currentHopIndex >= allHops.length - 1;
+}
+function toggleAutoPlay() {
+  const btn = document.getElementById('btnAutoPlay');
+  if (autoPlayTimer) {
+    clearInterval(autoPlayTimer);
+    autoPlayTimer = null;
+    btn.textContent = '▶ 自动';
+  } else {
+    btn.textContent = '⏸ 暂停';
+    autoPlayTimer = setInterval(() => {
+      if (currentHopIndex >= allHops.length - 1) {
+        currentHopIndex = -1;
+      }
+      jumpToHop(currentHopIndex + 1);
+    }, 1500);
+  }
+}
+
+// ==================== SCENARIO SWITCHING ====================
+function switchScenario(scenario) {
+  currentScenario = scenario;
+  document.getElementById('scenarioLabel').textContent = SCENARIO_LABELS[scenario];
+  document.querySelectorAll('.header-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn' + scenario.charAt(0).toUpperCase() + scenario.slice(1)).classList.add('active');
+
+  // Reset panels
+  const mock = MOCK_DATA[scenario];
+  renderPipeline(mock.pipeline);
+  renderPlan([]);
+  renderEvidence([]);
+  clearChat();
+  appendChat({ role: 'system', content: '场景已切换: ' + SCENARIO_LABELS[scenario] });
+
+  // Reload graph
+  loadStats();
+  loadFullGraph();
+
+  // Reset graph mode
+  showFullGraph();
+}
+
+// ==================== API DATA MAPPING ====================
+/**
+ * 将后端 /api/<scenario>/ask 的响应映射为各面板的入参格式。
+ * 后端字段 → dashboard render 函数字段的桥梁。
+ */
+function mapApiResponseToPanels(data) {
+  const executedRules = new Set((data.reasoning || []).map(r => r.rule));
+  // rule_flow: 后端编排规则列表 → plan 面板需要的 {step,action,desc,preconditions,postconditions,status}
+  const plan = (data.rule_flow || []).map((rf, i) => ({
+    step: i + 1,
+    action: data.tool_name ? `${data.tool_name} · ${rf.rule}` : rf.rule,
+    desc: rf.chinese || rf.rule,
+    preconditions: rf.depends_on || [],
+    postconditions: (data.reasoning || []).filter(r => r.rule === rf.rule).map(r => r.conclusion).filter(Boolean),
+    status: data.status === 'error' ? 'fail' : executedRules.has(rf.rule) ? 'pass' : 'pending',
+  }));
+
+  // reasoning: 后端推理块列表 → evidence 面板需要的 {rule, ruleLabel, conclusion, facts}
+  const evidence = (data.reasoning || []).map(r => ({
+    rule: data.tool_name ? `${data.tool_name} · ${r.rule}` : r.rule,
+    ruleLabel: r.rule_desc || '',
+    conclusion: r.conclusion || '',
+    facts: (r.hops || []).map(h => ({
+      from: h.from_label || h.from,
+      pred: h.predicate,
+      to: h.to_label || h.to,
+      reason: h.reason || '',
+      status: h.passed !== false ? 'pass' : 'fail',
+    })),
+  }));
+
+  // 聚合所有 hops 用于图谱导航
+  const allHops = (data.reasoning || []).flatMap(r => r.hops || []);
+
+  // subgraph: 后端直接返回 {nodes, edges}，与 MOCK_DATA.graphNodes/graphEdges 同结构
+  return {
+    pipeline: data.pipeline || [],
+    plan,
+    evidence,
+    allHops,
+    subgraph: data.subgraph || { nodes: [], edges: [] },
+    answer: data.answer || '',
+    answerNodes: data.answer_nodes || [],
+  };
+}
+
+function mergeTraceSubgraphs(traces) {
+  const nodes = new Map();
+  const edges = new Map();
+  traces.forEach(t => {
+    (t.subgraph?.nodes || []).forEach(n => nodes.set(n.id, n));
+    (t.subgraph?.edges || []).forEach(e => edges.set(`${e.from}|${e.label}|${e.to}`, e));
+  });
+  return { nodes: [...nodes.values()], edges: [...edges.values()] };
+}
+
+// ==================== SUBGRAPH FROM API ====================
+function renderSubGraphDynamic(subgraph, answerNodes) {
+  if (!subgraph || !subgraph.nodes || !subgraph.edges) {
+    renderSubGraph({ graphNodes: [], graphEdges: [] });
+    return;
+  }
+
+  const answerSet = new Set(answerNodes);
+
+  const nodes = subgraph.nodes.map(n => ({
+    id: n.id, label: n.label || n.id,
+    color: {
+      background: n.color || '#4a5568',
+      border: answerSet.has(n.id) ? '#f6ad55' : (n.color || '#4a5568'),
+      highlight: { background: '#fff', border: answerSet.has(n.id) ? '#f6ad55' : '#7c6af7' },
+    },
+    font: { color: '#e8eaf6', size: 11 },
+    borderWidth: answerSet.has(n.id) ? 3 : 2,
+    shape: answerSet.has(n.id) ? 'star' : 'dot',
+    size: n.type === 'Student' || n.type === 'Material' ? 16 : 13,
+  }));
+
+  const edges = subgraph.edges.map((e, i) => ({
+    id: 'e' + i, from: e.from, to: e.to, label: e.label || '',
+    color: { color: e.color || '#7c6af7', highlight: '#fff', hover: '#fff' },
+    font: { color: '#9ba3c2', size: 9, strokeWidth: 0 },
+    arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+    dashes: false,
+  }));
+
+  const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+  const options = {
+    physics: { enabled: false },
+    interaction: { hover: true },
+    nodes: { shadow: { enabled: true, color: 'rgba(0,0,0,0.4)', size: 4, x: 2, y: 2 } },
+    layout: { improvedLayout: true },
+  };
+
+  if (network) { network.destroy(); network = null; }
+  nodeDataSet = data.nodes;
+  edgeDataSet = data.edges;
+  network = new vis.Network(document.getElementById('mynetwork'), data, options);
+  network.on('click', function(params) {
+    if (params.nodes.length) {
+      showNodeInfo(params.nodes[0]);
+    }
+  });
+}
+
+// ==================== DO ASK (SSE 流式推理) ====================
+async function doAsk() {
+  const input = document.getElementById('questionInput');
+  const askBtn = document.getElementById('askBtn');
+  const question = input.value.trim();
+  if (!question || askBtn.disabled) return;
+  askBtn.disabled = true;
+  input.value = '';
+
+  appendChat({ role: 'user', content: question });
+  appendChat({ role: 'system', content: '正在调用意图识别模块进行推理...' });
+  renderPlan([]);
+  renderEvidence([]);
+
+  let fullAnswer = '';
+  let responseBubble = null;
+  const kgTraces = [];
+
+  try {
+    const resp = await fetch(`/api/${currentScenario}/ask/stream?question=${encodeURIComponent(question)}`);
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: '网络错误' }));
+      appendChat({ role: 'system', content: `推理出错: ${err.error || resp.status}` });
+      return;
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let sseBuffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      sseBuffer += decoder.decode(value, { stream: true });
+      const messages = sseBuffer.split('\n\n');
+      sseBuffer = messages.pop();
+
+      for (const message of messages) {
+        for (const line of message.split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        const jsonStr = line.slice(6);
+        if (!jsonStr) continue;
+
+        try {
+          const event = JSON.parse(jsonStr);
+
+          if (event.type === 'done' || event.type === 'error') {
+            if (event.type === 'error') {
+              appendChat({ role: 'system', content: `推理出错: ${event.data?.message || '未知错误'}` });
+            }
+            break;
+          }
+
+          if (event.type === 'KGTraceEvent') {
+            kgTraces.push(event.data);
+            const panels = kgTraces.map(mapApiResponseToPanels);
+            renderPlan(panels.flatMap(p => p.plan));
+            renderEvidence(panels.flatMap(p => p.evidence));
+            allHops = panels.flatMap(p => p.allHops);
+            const subgraph = mergeTraceSubgraphs(kgTraces);
+            const answerNodes = kgTraces.flatMap(t => t.answer_nodes || []);
+            if (subgraph.nodes.length) {
+              graphMode = 'subgraph';
+              document.getElementById('btnFullGraph').classList.remove('active');
+              document.getElementById('btnSubGraph').classList.add('active');
+              document.getElementById('hopsNav').style.display = 'flex';
+              document.getElementById('graphLegend').style.display = 'none';
+              document.getElementById('graphStatus').innerHTML = `图谱模式: <b>KG 推理路径</b> (${subgraph.nodes.length} 节点)`;
+              renderSubGraphDynamic(subgraph, answerNodes);
+            }
+            continue;
+          }
+
+          const content = event.type === 'TextDeltaEvent' ? (
+            event.data?.delta || 
+            event.data?.content || 
+            event.delta || 
+            event.content || 
+            ''
+          ) : '';
+          
+          if (content) {
+            fullAnswer += content;
+            if (!responseBubble) {
+              responseBubble = appendChat({ role: 'assistant', content: '' }).querySelector('.chat-bubble');
+            }
+            const thinkingStep = responseBubble.querySelector('.thinking-step');
+            responseBubble.innerHTML = formatAnswer(fullAnswer) + (thinkingStep ? thinkingStep.outerHTML : '');
+            const chatBody = document.getElementById('chatBody');
+            chatBody.scrollTop = chatBody.scrollHeight;
+          }
+
+          const toolNameRaw = event.data?.tool_call_name || event.tool_call_name || event.data?.tool_calls?.[0]?.name;
+          if (event.type === 'ToolCallStartEvent' && toolNameRaw) {
+            const toolName = escapeHtml(toolNameRaw);
+            if (!responseBubble) {
+              responseBubble = appendChat({ role: 'assistant', content: '' }).querySelector('.chat-bubble');
+            }
+            if (!responseBubble.querySelector('.thinking-step')) {
+              responseBubble.innerHTML += `<div class="thinking-step"><span class="ts-icon">💭</span><div><span class="ts-text">调用工具: ${toolName}</span></div></div>`;
+              document.getElementById('chatBody').scrollTop = document.getElementById('chatBody').scrollHeight;
+            }
+          }
+        } catch (e) { console.error('SSE 事件解析失败', e); }
+        }
+      }
+    }
+
+    // 确保最终内容被正确显示
+    if (fullAnswer) {
+      responseBubble = responseBubble || appendChat({ role: 'assistant', content: '' }).querySelector('.chat-bubble');
+      responseBubble.innerHTML = formatAnswer(fullAnswer);
+    }
+    if (!kgTraces.length) {
+      document.getElementById('planBody').innerHTML = '<div style="text-align:center;color:var(--red);font-size:12px;margin-top:20px">本轮未调用 KG Tool</div>';
+      document.getElementById('evidenceBody').innerHTML = '<div style="text-align:center;color:var(--red);font-size:12px;margin-top:20px">本轮无 KG 推理证据</div>';
+    }
+
+  } catch (err) {
+    appendChat({ role: 'system', content: `推理出错: ${err.message}` });
+  } finally {
+    askBtn.disabled = false;
+    input.focus();
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,2940 @@
+version: "1.0.0"
+
+semantic_model:
+  - name:  procurement_poc
+    description: 采购助手 Source-to-Award 业务对象图谱，覆盖采购需求、采购计划、采购订单、到货及付款执行闭环。
+    datasets:
+      - name: PUR_PURORDER_HEAD
+        source: PUR_PURORDER_HEAD
+        description: 采购订单抬头，记录向供应商下达的具有法律约束力的正式采购协议的概要信息。由采购申请转化而来，包含供应商、采购组织、采购员、币种、订单状态（下达/未下达）等关键要素
+        ai_context: 同义词：采购订单、PO、Purchase Order、采购定单、采购合同
+        fields:
+          - name: id
+            description: 主键
+            data_type: varchar
+          - name: PARENT_ID_
+            description: 外键
+            data_type: varchar
+          - name: TENANT_ID_
+            description: 租户ID
+            data_type: varchar
+          - name: IP_
+            description: IP地址
+            data_type: varchar
+          - name: CREATE_BY_
+            description: 创建人
+            data_type: varchar
+          - name: CREATE_TIME_
+            description: 创建时间
+            data_type: varchar
+          - name: parentId
+            description: 外键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: BS_CODE
+            description: 业务场景ID
+            data_type: string
+          - name: BS_DESC
+            description: 业务场景描述
+            data_type: string
+          - name: BSI_CODE
+            description: 业务情形ID
+            data_type: string
+          - name: BSI_DESC
+            description: 业务情形描述
+            data_type: string
+          - name: DOC_NUMBER
+            description: 单据号码
+            data_type: string
+          - name: DOC_DATE
+            description: 单据日期
+            data_type: date
+          - name: DOC_STATUS
+            description: 单据状态
+            data_type: string
+          - name: DOC_DESCRIPTION
+            description: 单据事由
+            data_type: string
+          - name: ORGID
+            description: 部门ID
+            data_type: string
+          - name: ORGTEXT
+            description: 部门名称
+            data_type: string
+          - name: USERNO
+            description: 制单人工号
+            data_type: string
+          - name: USERNAME
+            description: 制单人姓名
+            data_type: string
+          - name: USER_POSITION
+            description: 制单人职位
+            data_type: string
+          - name: USERID
+            description: 制单人域账号
+            data_type: string
+          - name: USERKEY
+            description: 制单人主键
+            data_type: string
+          - name: PO_ID
+            description: 采购订单
+            data_type: string
+          - name: COMPANY_ID
+            description: 公司代码
+            data_type: string
+          - name: COMPANY_D
+            description: 公司代码描述
+            data_type: string
+          - name: POTYPE_ID
+            description: 订单类型
+            data_type: string
+          - name: DOCUMENT_TYPE
+            description: 凭证类别
+            data_type: string
+          - name: VENDOR_ID
+            description: 供应商
+            data_type: string
+          - name: VENDOR_D
+            description: 供应商描述
+            data_type: string
+          - name: PURGROUP_ID
+            description: 采购组
+            data_type: string
+          - name: PURGROUP_D
+            description: 采购组描述
+            data_type: string
+          - name: PURORG_ID
+            description: 采购组织
+            data_type: string
+          - name: DOCUMENT_DATE
+            description: 凭证日期
+            data_type: date
+          - name: CURRENCY_ID
+            description: 货币
+            data_type: string
+          - name: EXCHANGE_RATE
+            description: 汇率
+            data_type: string
+          - name: FIXED_EXCHANGE_RATE
+            description: 固定汇率
+            data_type: string
+          - name: INCOTERMS_ID
+            description: 国际贸易条件
+            data_type: string
+          - name: PAYT_ID
+            description: 付款条件
+            data_type: string
+          - name: CONDITION_NUM
+            description: 条件编号
+            data_type: string
+          - name: APPRO_WHE
+            description: 是否审批
+            data_type: string
+          - name: FLOW_STATUS
+            description: 审批状态
+            data_type: string
+          - name: INST_ID
+            description: 流程实例id
+            data_type: string
+          - name: DOCUMENT_STATUS
+            description: 采购订单状态
+            data_type: string
+          - name: CONTRACT_AMOUNT
+            description: 订单总金额
+            data_type: integer
+          - name: DELETE_FLAG
+            description: 删除
+            data_type: string
+          - name: LANGUAGE_ID
+            description: 语言
+            data_type: string
+          - name: CLBS_
+            description: 处理标识
+            data_type: string
+          - name: PR_ID
+            description: 采购计划号
+            data_type: string
+          - name: PR_ITEM
+            description: 采购计划行号
+            data_type: string
+          - name: PROCATEGORY_ID
+            description: 项目类别
+            data_type: string
+          - name: FACTORY_ID
+            description: 需求工厂
+            data_type: string
+          - name: pur_info
+            description: 信息记录
+            data_type: string
+          - name: ORDERED_QUANTITY
+            description: 已订购数量
+            data_type: integer
+          - name: DELIVERED_QUANTITY
+            description: 已交货数量
+            data_type: integer
+          - name: STILL_DELIVER_QUANTITY
+            description: 仍要交货数量
+            data_type: integer
+          - name: INVOICED_QUANTITY_PO
+            description: 已开票数量
+            data_type: integer
+          - name: ORDERED_AMOUNT
+            description: 已订购金额
+            data_type: integer
+          - name: DELIVERED_AMOUNT
+            description: 已交货金额
+            data_type: integer
+          - name: STILL_DELIVER_AMOUNT
+            description: 仍要交货金额
+            data_type: integer
+          - name: INVOICED_AMOUNT_PO
+            description: 已开票金额
+            data_type: integer
+          - name: UNINVOICED_AMOUNT
+            description: 预付定金（未开票金额）
+            data_type: integer
+          - name: INCOTERM_HEAD
+            description: 国际贸易条款抬头
+            data_type: string
+          - name: INCOTERM_D_HEAD
+            description: 国际贸易条款描述抬头
+            data_type: string
+          - name: ORDER_GENERATE_DATE
+            description: 采购订单创建日期
+            data_type: string
+          - name: PROFIT_CENTER
+            description: 利润中心
+            data_type: string
+          - name: CGPZLB_
+            description: 采购凭证类型
+            data_type: string
+          - name: PZLB_
+            description: 凭证类别
+            data_type: string
+          - name: FK_
+            description: 付款（天）
+            data_type: string
+          - name: FKBFB_
+            description: 付款（%）
+            data_type: integer
+          - name: WENBEN_
+            description: 文本
+            data_type: text
+          - name: SHXX_
+            description: 收货信息
+            data_type: string
+          - name: JDMPH_
+            description: 街道/门牌号
+            data_type: string
+          - name: YZBMCS_
+            description: 邮政编码/城市
+            data_type: string
+          - name: GJ_
+            description: 国家
+            data_type: string
+          - name: DIANHUA_
+            description: 电话
+            data_type: string
+          - name: FJHDH_
+            description: 分机号（电话）
+            data_type: string
+          - name: CZ_
+            description: 传真
+            data_type: string
+          - name: FJHCZ_
+            description: 分机号（传真）
+            data_type: string
+          - name: XSY_
+            description: 销售员
+            data_type: string
+          - name: XSYDH_
+            description: 销售员电话
+            data_type: string
+          - name: NDCK_
+            description: 您的参考
+            data_type: string
+          - name: WMDCK_
+            description: 我们的参考
+            data_type: string
+          - name: CGZZMS_
+            description: 采购组织描述
+            data_type: string
+      - name: BO_PLAN_PR_HEAD
+        source: BO_PLAN_PR_HEAD
+        description: 采购申请抬头，记录业务部门向采购部门提出的物料/服务采购需求的概要信息。是采购流程的起点单据，包含申请人、供应商建议、需求类型（标准采购/成本中心采购）等核心信息
+        ai_context: 同义词：采购需求、请购单、PR、Purchase Requisition、采购申请单
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: parentId
+            description: 外键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: BS_CODE
+            description: 业务场景ID
+            data_type: string
+          - name: BS_DESC
+            description: 业务场景描述
+            data_type: string
+          - name: BSI_CODE
+            description: 业务情形ID
+            data_type: string
+          - name: BSI_DESC
+            description: 业务情形描述
+            data_type: string
+          - name: DOC_NUMBER
+            description: 单据号码
+            data_type: string
+          - name: DOC_DATE
+            description: 单据日期
+            data_type: date
+          - name: DOC_STATUS
+            description: 单据状态
+            data_type: string
+          - name: DOC_DESCRIPTION
+            description: 单据事由
+            data_type: string
+          - name: BUKRS
+            description: 公司代码
+            data_type: string
+          - name: BUTXT
+            description: 公司名称
+            data_type: string
+          - name: ORGID
+            description: 部门ID
+            data_type: string
+          - name: ORGTEXT
+            description: 部门名称
+            data_type: string
+          - name: USERNO
+            description: 制单人工号
+            data_type: string
+          - name: USERNAME
+            description: 制单人姓名
+            data_type: string
+          - name: USER_POSITION
+            description: 制单人职位
+            data_type: string
+          - name: USERID
+            description: 制单人域账号
+            data_type: string
+          - name: USERKEY
+            description: 制单人主键
+            data_type: string
+          - name: CHULIBIAOZHI
+            description: 处理标识
+            data_type: string
+          - name: PR_ID
+            description: 采购申请号
+            data_type: string
+          - name: PR_TYPE
+            description: 采购申请类型
+            data_type: string
+          - name: PROCATEGORY_ID
+            description: 项目类别
+            data_type: string
+          - name: PR_STATUS
+            description: 采购状态
+            data_type: string
+          - name: NET_DEMAND_ID
+            description: 净需求ID
+            data_type: string
+          - name: VENDOR_ID
+            description: 供应商
+            data_type: string
+          - name: VENDOR_D
+            description: 供应商描述
+            data_type: string
+          - name: FACTORY_ID
+            description: 需求工厂
+            data_type: string
+          - name: VOUCHER_TYPE
+            description: 凭证类别
+            data_type: string
+      - name: BO_PLAN_PR_INFO
+        source: BO_PLAN_PR_INFO
+        description: 采购申请行项目，记录每条采购需求的具体物料、申请数量、建议供应商、期望交货日期、预估价格等明细信息。与抬头表通过 PARENT_ID_ 关联，是需求到订单转化的关键明细
+        ai_context: 同义词：采购申请行项目、PR明细、请购单行、PR Item、采购需求明细
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: parentId
+            description: 外键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: BC_CODE
+            description: 业务类型ID
+            data_type: string
+          - name: BC_DESC
+            description: 业务类型描述
+            data_type: string
+          - name: PR_ID
+            description: 采购申请号
+            data_type: string
+          - name: PR_ITEM
+            description: 采购申请行项目ID
+            data_type: string
+          - name: PR_TYPE
+            description: 采购申请类型
+            data_type: string
+          - name: APPLY_NUM
+            description: 需求跟踪号
+            data_type: string
+          - name: NET_DEMAND_ID
+            description: 净需求ID
+            data_type: string
+          - name: ASSCATEGORY_ID
+            description: 科目分配类别
+            data_type: string
+          - name: PROCATEGORY_ID
+            description: 项目类别
+            data_type: string
+          - name: COMPANY_ID
+            description: 公司
+            data_type: string
+          - name: PURORG_ID
+            description: 采购组织
+            data_type: string
+          - name: LOCATION_ID
+            description: 库存地点
+            data_type: string
+          - name: MATERIAL_ID
+            description: 物料
+            data_type: string
+          - name: MATERIAL_D
+            description: 物料描述
+            data_type: string
+          - name: DELIVERY_DATE
+            description: 交货日期
+            data_type: date
+          - name: FACTORY_ID
+            description: 需求工厂
+            data_type: string
+          - name: FACTORY_NAME
+            description: 需求工厂名称
+            data_type: string
+          - name: QUANTITY
+            description: 需求数量(作废)
+            data_type: string
+          - name: UNIT_ID
+            description: 计量单位
+            data_type: string
+          - name: PURGROUP_ID
+            description: 采购组
+            data_type: string
+          - name: PURGROUP_D
+            description: 采购组描述
+            data_type: string
+          - name: APPRO_DATE
+            description: 批准日期
+            data_type: date
+          - name: PR_DELIVERY_DATE
+            description: 需求交货日期
+            data_type: date
+          - name: MIN_QUANTITY
+            description: 最小批量
+            data_type: string
+          - name: VENDOR_ID
+            description: 供应商ID
+            data_type: string
+          - name: VENDOR_D
+            description: 供应商
+            data_type: string
+          - name: NDD_ID
+            description: NDD_ID
+            data_type: string
+          - name: GROSS_DEMAND_ID
+            description: 毛需求ID
+            data_type: string
+          - name: PR_STATUS
+            description: 下单状态
+            data_type: string
+          - name: DEMAND_DATE
+            description: 需求日期
+            data_type: date
+          - name: PR_LEAD_TIME
+            description: 采购提前期
+            data_type: string
+          - name: PR_SUGGEST_DATE
+            description: 采购建议日期
+            data_type: date
+          - name: NOW_PR_QTY
+            description: 本次申请采购数量
+            data_type: integer
+          - name: ALREADY_PR_QTY
+            description: 已采购数量
+            data_type: integer
+          - name: REMAIN_PR_QTY
+            description: 剩余采购数量
+            data_type: integer
+          - name: CLBS
+            description: 处理标识
+            data_type: string
+          - name: POSNR
+            description: 行号
+            data_type: string
+          - name: UNIQUE_ID
+            description: 身份ID
+            data_type: string
+          - name: INFO_TYPE
+            description: 信息记录类别
+            data_type: string
+          - name: NET_PRICE
+            description: 不含税净价
+            data_type: integer
+          - name: PRICE_UNIT
+            description: 价格单位
+            data_type: string
+          - name: CURRENCY_ID
+            description: 币种
+            data_type: string
+          - name: TAX_ID
+            description: 税码（作废）
+            data_type: string
+          - name: MATERIAL_GROUP
+            description: 物料组
+            data_type: string
+          - name: REQUEST_DATE
+            description: 请求日期
+            data_type: date
+          - name: HARVEST_PROCESS_TIME
+            description: 建议交货日期
+            data_type: date
+          - name: SUPPLY_FACTORY
+            description: 供应工厂
+            data_type: string
+          - name: FACTORY_ADDRESS
+            description: 需求工厂地址
+            data_type: string
+          - name: APPLICANT
+            description: 申请人
+            data_type: string
+          - name: TELEPHONE
+            description: 电话
+            data_type: string
+          - name: CREATOR
+            description: 创建人
+            data_type: string
+          - name: WENBEN
+            description: 文本
+            data_type: text
+          - name: COMPANY_NAME
+            description: 公司名称
+            data_type: string
+          - name: FIXED_SUPPLIER
+            description: 固定供应商
+            data_type: string
+          - name: FIXED_SUPPLIER_ID
+            description: 固定供应商ID
+            data_type: string
+          - name: TRACKING_NUMBER
+            description: 跟踪编号
+            data_type: string
+          - name: PR_DELIVERY_DAY
+            description: 计划交货时间
+            data_type: string
+          - name: HARVEST_PROCESS_DAY
+            description: 收货处理时间
+            data_type: string
+          - name: GL_ACCOUNT
+            description: 总账科目
+            data_type: string
+          - name: UNLOADING_
+            description: 卸货点
+            data_type: string
+          - name: RECEIVING_
+            description: 接收方
+            data_type: string
+          - name: COST_CONTROL
+            description: 成本控制域
+            data_type: string
+          - name: COST_CENTER
+            description: 成本中心
+            data_type: string
+          - name: BSI_CODE
+            description: 业务情形ID
+            data_type: string
+          - name: BSI_DESC
+            description: 业务情形描述
+            data_type: string
+          - name: BATCH_NO
+            description: 批次
+            data_type: string
+          - name: MATERIEL_TYPE
+            description: 物料类型
+            data_type: string
+          - name: SPEC_STOCK_TYPE
+            description: 特殊库存类型
+            data_type: string
+          - name: EVAL_SCOPE
+            description: 评估范围
+            data_type: string
+          - name: EVAL_TYPE
+            description: 评估类型
+            data_type: string
+          - name: EVAL_CLASS
+            description: 评估类
+            data_type: string
+          - name: QTY_EVAL
+            description: 数量评估
+            data_type: string
+          - name: VALUE_EVAL
+            description: 价值评估
+            data_type: string
+          - name: PROFIT_CENTER
+            description: 利润中心
+            data_type: string
+          - name: COA
+            description: 会计科目表
+            data_type: string
+          - name: FUNC_AREA
+            description: 功能范围
+            data_type: string
+          - name: PUR_QTY
+            description: 数量（采购）
+            data_type: integer
+          - name: PUR_UNIT
+            description: 采购单位
+            data_type: string
+          - name: BASE_QTY
+            description: 数量（基本）
+            data_type: integer
+          - name: BASE_UNIT
+            description: 基本单位
+            data_type: string
+          - name: PUR_PRICE
+            description: 采购价格
+            data_type: decimal
+          - name: PUR_PRICE_UNIT
+            description: 采购价格单位
+            data_type: string
+          - name: TRANS_AMOUNT
+            description: 交易金额
+            data_type: decimal
+          - name: TRANS_CURRENCY
+            description: 交易货币
+            data_type: string
+          - name: LC_AMOUNT
+            description: 本币金额
+            data_type: decimal
+          - name: LOCAL_CURRENCY
+            description: 本位币
+            data_type: string
+          - name: TAX_CODE
+            description: 税码
+            data_type: string
+          - name: TAX_RATE
+            description: 税率
+            data_type: decimal
+          - name: TAX_AMOUNT
+            description: 交易税额
+            data_type: decimal
+          - name: LOCAL_TAX_AMOUNT
+            description: 本币税额
+            data_type: decimal
+          - name: SALES_ORDER
+            description: 销售订单
+            data_type: string
+          - name: LINE_ITEM
+            description: 行项目
+            data_type: string
+          - name: R_IDE
+            description: 拒绝状态
+            data_type: string
+          - name: DEMAND_QTY
+            description: 需求数量
+            data_type: integer
+          - name: PURORG_D
+            description: 采购组织描述
+            data_type: string
+          - name: LOCATION_D
+            description: 库存地点描述
+            data_type: string
+          - name: KZFW
+            description: 控制范围
+            data_type: string
+          - name: NBDD
+            description: 内部订单
+            data_type: string
+          - name: WBS
+            description: WBS
+            data_type: string
+          - name: NET_W
+            description: 网络
+            data_type: string
+          - name: XSDDH_
+            description: 销售订单行
+            data_type: string
+          - name: COST_CENTER_NAME
+            description: 成本中心名称
+            data_type: string
+      - name: PUR_PURORDER_ITEM
+        source: PUR_PURORDER_ITEM
+        description: 采购订单行项目，记录每笔采购订单的具体物料、订购数量、单价、金额、交货日期、库存地点等明细信息。通过 PARENT_ID_ 与抬头关联，是采购执行与收货对账的核心依据
+        ai_context: 同义词：采购订单明细、PO行项目、PO Item、采购订单行
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: parentId
+            description: 外键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: BS_CODE
+            description: 业务场景ID
+            data_type: string
+          - name: BS_DESC
+            description: 业务场景描述
+            data_type: string
+          - name: BSI_CODE
+            description: 业务情形ID
+            data_type: string
+          - name: BSI_DESC
+            description: 业务情形描述
+            data_type: string
+          - name: DOC_NUMBER
+            description: 单据号码
+            data_type: string
+          - name: DOC_DATE
+            description: 单据日期
+            data_type: date
+          - name: DOC_STATUS
+            description: 单据状态
+            data_type: string
+          - name: DOC_DESCRIPTION
+            description: 单据事由
+            data_type: string
+          - name: BUKRS
+            description: 公司代码
+            data_type: string
+          - name: BUTXT
+            description: 公司名称
+            data_type: string
+          - name: ORGID
+            description: 部门ID
+            data_type: string
+          - name: ORGTEXT
+            description: 部门名称
+            data_type: string
+          - name: USERNO
+            description: 制单人工号
+            data_type: string
+          - name: USERNAME
+            description: 制单人姓名
+            data_type: string
+          - name: USER_POSITION
+            description: 制单人职位
+            data_type: string
+          - name: USERID
+            description: 制单人域账号
+            data_type: string
+          - name: USERKEY
+            description: 制单人主键
+            data_type: string
+          - name: BC_CODE
+            description: 业务类型
+            data_type: string
+          - name: BC_DESC
+            description: 业务类型描述
+            data_type: string
+          - name: PO_ID
+            description: 采购订单
+            data_type: string
+          - name: PO_ITEM
+            description: 采购订单行项目ID
+            data_type: string
+          - name: DELETE_FLAG
+            description: 删除标识
+            data_type: string
+          - name: ASSCATEGORY_ID
+            description: 科目分配类别
+            data_type: string
+          - name: PROCATEGORY_ID
+            description: 项目类别
+            data_type: string
+          - name: MATERIAL_ID
+            description: 物料编码
+            data_type: string
+          - name: MATERIAL_D
+            description: 物料描述
+            data_type: string
+          - name: FACTORY_ID
+            description: 工厂
+            data_type: string
+          - name: LOCATION_ID
+            description: 库存地点
+            data_type: string
+          - name: MATGROUP_ID
+            description: 物料组
+            data_type: string
+          - name: QUANTITY
+            description: 数量（基本）
+            data_type: integer
+          - name: UNIT_ID
+            description: 基本记录单位
+            data_type: string
+          - name: QUANTITY_O
+            description: 数量（采购）
+            data_type: integer
+          - name: UNIT_O
+            description: 采购定单单位
+            data_type: string
+          - name: PR_ID
+            description: 采购计划号
+            data_type: string
+          - name: PR_ITEM
+            description: 采购计划行项目ID
+            data_type: string
+          - name: PRICE
+            description: 单价（含税）
+            data_type: integer
+          - name: NET_PRICE
+            description: 采购价格
+            data_type: integer
+          - name: TOTAL_NET_PRICE
+            description: 交易金额
+            data_type: integer
+          - name: TOTAL_PR
+            description: 总价（含税）
+            data_type: integer
+          - name: TAX_AMOUNT
+            description: 本币税额
+            data_type: integer
+          - name: CURRENCY_
+            description: 货币
+            data_type: string
+          - name: PRICE_UNIT
+            description: 价格单位
+            data_type: string
+          - name: DELIVERY_DATE
+            description: 交货日期
+            data_type: date
+          - name: TAX_CODE
+            description: 税率代码
+            data_type: string
+          - name: INBOUND_STATE
+            description: 交货状态
+            data_type: string
+          - name: RETURNS_
+            description: 退货标识
+            data_type: string
+          - name: FREE_
+            description: 免费标识
+            data_type: string
+          - name: STOCK_STATUS
+            description: 库存状态
+            data_type: string
+          - name: GR_BASED_IV
+            description: 基于GR的IV
+            data_type: string
+          - name: CLBS_
+            description: 处理标识
+            data_type: string
+          - name: QUA1
+            description: 本次收货数量
+            data_type: integer
+          - name: QUA2
+            description: 已收货数量
+            data_type: integer
+          - name: QUA3
+            description: 剩余收货数量
+            data_type: integer
+          - name: UNIQUE_ID
+            description: 身份ID
+            data_type: string
+          - name: QUA_S
+            description: 剩余采购数量
+            data_type: integer
+          - name: NOW_PR_QTY
+            description: 本次申请采购数量
+            data_type: integer
+          - name: POSNR
+            description: 采购订单行项目
+            data_type: string
+          - name: NET_DEMAND_ID
+            description: 采购净需求ID
+            data_type: string
+          - name: NDD_ID
+            description: NDD_ID
+            data_type: string
+          - name: GROSS_DEMAND_ID
+            description: 毛需求ID
+            data_type: string
+          - name: DOCUMENT_STATUS
+            description: 单据状态
+            data_type: string
+          - name: DELIVERY_ADVISE_DATE
+            description: 采购建议日期
+            data_type: date
+          - name: PUR_INFO
+            description: 信息记录类别
+            data_type: string
+          - name: DELIVERY_TIME
+            description: 采购提前期
+            data_type: string
+          - name: DEMAND_DATE
+            description: 需求日期
+            data_type: date
+          - name: NET_WEIGHT_PO
+            description: 净重_总
+            data_type: integer
+          - name: GROSS_WEIGHT_PO
+            description: 毛重_总
+            data_type: integer
+          - name: VOLUME_PO
+            description: 体积_总
+            data_type: integer
+          - name: NET_WEIGHT
+            description: 净重_单
+            data_type: integer
+          - name: GROSS_WEIGHT
+            description: 毛重_单
+            data_type: integer
+          - name: VOLUME_
+            description: 体积_单
+            data_type: integer
+          - name: EX_DELIVERY_TOL
+            description: 过量交货容差
+            data_type: string
+          - name: IN_DELIVERY_TOL
+            description: 交货不足容差
+            data_type: string
+          - name: INVENTORY_TYPE
+            description: 库存类型
+            data_type: string
+          - name: UNRESTRICTED_
+            description: 无限制
+            data_type: string
+          - name: ORIGINAN_ACCEPT
+            description: 原产地验收
+            data_type: string
+          - name: RECEIPT_
+            description: 收货
+            data_type: string
+          - name: RECEIPT_NO_EVAL
+            description: 收货未评估
+            data_type: string
+          - name: DELIVERY_COMPLETED
+            description: 交货已完成
+            data_type: string
+          - name: INVOICE_RECEIPT
+            description: 发票收据
+            data_type: string
+          - name: FINAL_INVOICE
+            description: 最后发票
+            data_type: string
+          - name: JYSHFPJY_
+            description: 基于收货的发票校验
+            data_type: string
+          - name: CONDITIONAL_TYPE
+            description: 条件类型
+            data_type: string
+          - name: CONDITIONAL_TYPE_D
+            description: 条件类型描述
+            data_type: string
+          - name: INCOTERM_ITEM
+            description: 国际贸易条款行项目
+            data_type: string
+          - name: INCOTERM_D_ITEM
+            description: 国际贸易条款描述行项目
+            data_type: string
+          - name: FACTORY_ADDRESS
+            description: 需求工厂地址
+            data_type: string
+          - name: ALREADY_PR_QTY
+            description: 已采购数量_旧
+            data_type: integer
+          - name: VENDOR_ID
+            description: 供应商
+            data_type: string
+          - name: VENDOR_D
+            description: 供应商描述
+            data_type: string
+          - name: PROFIT_CENTER
+            description: 利润中心
+            data_type: string
+          - name: EVALUATION_TYPE_ID
+            description: 评估类型
+            data_type: string
+          - name: EVALUATION_TYPE_D
+            description: 评估类型描述
+            data_type: string
+          - name: FACTORY_NAME
+            description: 工厂名称
+            data_type: string
+          - name: XQSL_
+            description: 需求数量
+            data_type: integer
+          - name: NEW_ALREADY_QTY
+            description: 已采购数量_新
+            data_type: integer
+          - name: NOW_PO_QTY
+            description: 本次采购数量
+            data_type: integer
+          - name: PURORG_ID
+            description: 采购组织
+            data_type: string
+          - name: PURGROUP_ID
+            description: 采购组
+            data_type: string
+          - name: ORDER_GENERATE_DATE
+            description: 采购订单创建日期
+            data_type: string
+          - name: MOQ
+            description: 最小订单量
+            data_type: integer
+          - name: VALID_FROM
+            description: 有效期起
+            data_type: date
+          - name: VALID_END
+            description: 有效期止
+            data_type: date
+          - name: JG_OBJ
+            description: 条件类型场景-实例号
+            data_type: string
+          - name: SFPC
+            description: 是否批次
+            data_type: string
+          - name: PC_
+            description: 批次
+            data_type: string
+          - name: GL_ACCOUNT
+            description: 总账科目
+            data_type: string
+          - name: UNLOADING_
+            description: 卸货点
+            data_type: string
+          - name: RECEIVING_
+            description: 接收方
+            data_type: string
+          - name: COST_CONTROL
+            description: 成本控制域
+            data_type: string
+          - name: COST_CENTER
+            description: 成本中心
+            data_type: string
+          - name: WENBEN_
+            description: 文本
+            data_type: text
+          - name: OF_IDE
+            description: 冲销标识
+            data_type: string
+          - name: NUMERATOR
+            description: 分子
+            data_type: string
+          - name: DENOMINATOR
+            description: 分母
+            data_type: string
+          - name: MCC_OBJ
+            description: 主数据条件类型-实例号
+            data_type: string
+          - name: STANDARD_QUANTITY
+            description: 标准数量
+            data_type: integer
+          - name: JHHH_
+            description: 计划行号
+            data_type: string
+          - name: BO_TAXRATE
+            description: 税率
+            data_type: integer
+          - name: TSKC_
+            description: 特殊库存
+            data_type: string
+          - name: JG_
+            description: 价格
+            data_type: integer
+          - name: GNFW_
+            description: 功能范围
+            data_type: string
+          - name: XSDD_
+            description: 销售订单
+            data_type: string
+          - name: XSDDH_
+            description: 销售订单行
+            data_type: string
+          - name: WBS_
+            description: WBS
+            data_type: string
+          - name: XQJHQ_
+            description: 需求交货期
+            data_type: date
+          - name: WLLX_
+            description: 物料类型
+            data_type: string
+          - name: TSKCLX_
+            description: 特殊库存类型
+            data_type: string
+          - name: PGFW_
+            description: 评估范围
+            data_type: string
+          - name: PGL_
+            description: 评估类
+            data_type: string
+          - name: SLPG_
+            description: 数量评估
+            data_type: string
+          - name: JGPG_
+            description: 价值评估
+            data_type: string
+          - name: KJKMB_
+            description: 会计科目表
+            data_type: string
+          - name: HS_
+            description: 换算
+            data_type: string
+          - name: JYJE_
+            description: 交易金额（作废）
+            data_type: integer
+          - name: JYHB_
+            description: 交易货币
+            data_type: string
+          - name: JYSE_
+            description: 交易税额
+            data_type: integer
+          - name: JYJHRQ_
+            description: 建议交货日期
+            data_type: date
+          - name: TJLXJE_
+            description: 条件类型金额
+            data_type: integer
+          - name: TJLXBFB_
+            description: 条件类型百分比
+            data_type: string
+          - name: XXJLHXM_
+            description: 信息记录行项目
+            data_type: string
+          - name: YJHJE_
+            description: 已交货金额
+            data_type: integer
+          - name: SYSHJE_
+            description: 剩余收货金额
+            data_type: integer
+          - name: KPSL_
+            description: 开票数量
+            data_type: string
+          - name: KPJE_
+            description: 开票金额
+            data_type: integer
+          - name: YFDJ_
+            description: 预付定金
+            data_type: integer
+          - name: TSKC_EVA
+            description: 特殊库存评估
+            data_type: string
+          - name: SHOUHUO
+            description: 收货凭证
+            data_type: string
+          - name: CUR_AMOUNT
+            description: 本币金额
+            data_type: decimal
+          - name: CGDW_
+            description: 采购单位
+            data_type: string
+          - name: KZFW
+            description: 控制范围
+            data_type: string
+          - name: NBDD
+            description: 内部订单
+            data_type: string
+          - name: WBS
+            description: WBS
+            data_type: string
+          - name: NET_W
+            description: 网络
+            data_type: string
+          - name: LOCATION_D
+            description: 库存地点描述
+            data_type: string
+          - name: PR_DELIVERY_DAY
+            description: 计划交货时间
+            data_type: string
+          - name: COST_CENTER_NAME
+            description: 成本中心名称
+            data_type: string
+      - name: BO_PUR_RECE
+        source: BO_PUR_RECE
+        description: 货物移动凭证主表，记录采购收货（101）、退货冲销（102）等库存移动操作的概要信息。是连接采购订单与库存管理的关键凭证，记录了每次货物移动的类型、供应商、过账日期等
+        ai_context: 同义词：收货单、货物移动、GR、Goods Receipt、物料凭证、入库单
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: datetime
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: datetime
+          - name: BS_CODE
+            description: 业务场景编码
+            data_type: string
+          - name: BS_DESC
+            description: 业务场景描述
+            data_type: string
+          - name: BSI_CODE
+            description: 业务情形编码
+            data_type: string
+          - name: BSI_DESC
+            description: 业务情形描述
+            data_type: string
+          - name: DOC_NUM
+            description: 单据号码-作废
+            data_type: string
+          - name: DOC_DATE
+            description: 单据日期
+            data_type: string
+          - name: DOC_STATUS
+            description: 单据状态
+            data_type: string
+          - name: USERNO
+            description: 发起人
+            data_type: string
+          - name: USERNAME
+            description: 发起人姓名
+            data_type: string
+          - name: USERID
+            description: 制单人域账号
+            data_type: string
+          - name: BLDAT
+            description: 凭证日期
+            data_type: string
+          - name: H_BUDAT
+            description: 过账日期
+            data_type: string
+          - name: LIFNR
+            description: 供应商编码
+            data_type: string
+          - name: LIFNR_DESC
+            description: 供应商描述
+            data_type: string
+          - name: DESCRIPTION
+            description: 抬头文本
+            data_type: string
+          - name: MOVEMENT
+            description: 移动类型-主
+            data_type: string
+          - name: MOVEMENT_DESC
+            description: 移动类型描述-主
+            data_type: string
+          - name: PERIOD
+            description: 过账期间
+            data_type: string
+          - name: PUR_DOCNUM
+            description: 采购收货凭证号
+            data_type: string
+          - name: LEI
+            description: 类
+            data_type: string
+          - name: TCODE
+            description: TCode
+            data_type: string
+          - name: CAOZUO
+            description: 操作
+            data_type: string
+          - name: CZ_DESC
+            description: 操作描述
+            data_type: string
+          - name: CKPZ
+            description: 参考凭证
+            data_type: string
+          - name: CKPZ_DESC
+            description: 参考凭证描述
+            data_type: string
+          - name: DOC_NUMBER
+            description: 单据号码
+            data_type: string
+          - name: PO_ID
+            description: 采购订单-主
+            data_type: string
+          - name: PZLX
+            description: 凭证类型
+            data_type: string
+          - name: YEAR1
+            description: 年度-主
+            data_type: string
+          - name: QIJIANZHU
+            description: 期间-主
+            data_type: string
+          - name: XINGXIANGMU
+            description: 行项目
+            data_type: string
+      - name: BO_PUR_RECE01
+        source: BO_PUR_RECE01
+        description: 货物移动凭证子表，记录每次库存移动操作的具体物料、收货数量、金额、批次、库存地点等明细信息。通过 PARENT_ID_ 与主表关联，同时生成物料凭证和财务凭证，是库存价值更新的直接数据源
+        ai_context: 同义词：收货明细、GR Item、物料凭证明细、入库明细
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: parentId
+            description: 外键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: BC_CODE
+            description: 业务类型编码
+            data_type: string
+          - name: BC_DESC
+            description: 业务类型名称
+            data_type: string
+          - name: MATERIAL_ID
+            description: 物料编码
+            data_type: string
+          - name: MATERIAL_D
+            description: 物料描述
+            data_type: string
+          - name: FACTORY_ID
+            description: 工厂
+            data_type: string
+          - name: MOVEMENT_TYPE
+            description: 移动类型
+            data_type: string
+          - name: MOVEMENT_D
+            description: 移动类型描述
+            data_type: string
+          - name: QUANTITY
+            description: 本次收货数量
+            data_type: integer
+          - name: AMOUNT_LOC_CUR
+            description: 本位币金额
+            data_type: integer
+          - name: CURRENCY_
+            description: 本位币
+            data_type: string
+          - name: BATCH_ID
+            description: 批次
+            data_type: string
+          - name: RE_REASON
+            description: 退货原因
+            data_type: string
+          - name: POSNR
+            description: 行号
+            data_type: string
+          - name: EX_TAX_AMOUNT
+            description: 不含税金额
+            data_type: integer
+          - name: TAX_AMOUNT
+            description: 税额
+            data_type: string
+          - name: KEY_
+            description: KEY
+            data_type: integer
+          - name: QUA3
+            description: 剩余收货数量
+            data_type: integer
+          - name: QUA1
+            description: 数量
+            data_type: string
+          - name: UNIQUE_ID
+            description: 身份ID
+            data_type: string
+          - name: PO_ITEM
+            description: 采购凭证行项目
+            data_type: string
+          - name: PO_ID
+            description: 采购订单
+            data_type: string
+          - name: RE_DOCNUM
+            description: 退货凭证号
+            data_type: string
+          - name: KEY_PUR
+            description: 收货凭证KEY
+            data_type: string
+          - name: LOCATION_ID
+            description: 库存地点
+            data_type: string
+          - name: PUR_USER
+            description: 申请人
+            data_type: string
+          - name: INVENTORY_TYPE
+            description: 库存类型
+            data_type: string
+          - name: BUKRS
+            description: 公司代码
+            data_type: string
+          - name: PRICE_UNIT
+            description: 价格单位
+            data_type: string
+          - name: UNIT_O
+            description: 订单单位
+            data_type: string
+          - name: PRCTR
+            description: 利润中心
+            data_type: string
+          - name: EVA_TYPE
+            description: 评估类型
+            data_type: string
+          - name: UNIT_ID
+            description: 基本记录单位
+            data_type: integer
+          - name: TR_PRICE
+            description: 交易价格
+            data_type: integer
+          - name: TR_AMOUNT
+            description: 交易金额
+            data_type: string
+          - name: TR_CUR
+            description: 交易货币
+            data_type: integer
+          - name: LO_PRICE
+            description: 本币价格
+            data_type: string
+          - name: EVA_DESC
+            description: 评估类型描述
+            data_type: string
+          - name: MATGROUP_ID
+            description: 物料组
+            data_type: string
+          - name: CONSI
+            description: 收货方
+            data_type: string
+          - name: UNPARTY
+            description: 卸货方
+            data_type: string
+          - name: TEXT_
+            description: 文本
+            data_type: string
+          - name: PROCATEGORY_ID
+            description: 项目类别
+            data_type: string
+          - name: SBATCH_ID
+            description: 供应商批次
+            data_type: date
+          - name: M_DATE
+            description: 制造日期
+            data_type: date
+          - name: SE_DATE
+            description: 货架到期日/最佳用时
+            data_type: integer
+          - name: QUA2
+            description: 已接收数量
+            data_type: string
+          - name: PUR_DOCNUMT
+            description: 采购收货凭证号-子
+            data_type: string
+          - name: LIFNR_ITEM
+            description: 供应商-子
+            data_type: string
+          - name: LIFNR_DESC_ITEM
+            description: 供应商描述-子
+            data_type: string
+          - name: BUTXT
+            description: 公司名称
+            data_type: integer
+          - name: EX_DELIVERY_TOL
+            description: 过量交货容差
+            data_type: integer
+          - name: IN_DELIVERY_TOL
+            description: 交货不足容差
+            data_type: integer
+          - name: EX_DELIVERY_RSU
+            description: 过量交货容差_结果
+            data_type: integer
+          - name: IN_DELIVERY_RSU
+            description: 交货不足容差_结果
+            data_type: string
+          - name: UN_IDE
+            description: 无限制
+            data_type: string
+          - name: DO_IDE
+            description: 是否分批
+            data_type: string
+          - name: FACTORY_NAME
+            description: 工厂描述
+            data_type: string
+          - name: P_BCID
+            description: 定单业务类型
+            data_type: integer
+          - name: QUA4
+            description: 本次退货数量
+            data_type: integer
+          - name: QUANTITY_O
+            description: 订单数量
+            data_type: string
+          - name: COST_CENTER
+            description: 成本中心
+            data_type: string
+          - name: ASSCATEGORY_ID
+            description: 科目分配类别
+            data_type: string
+          - name: GL_ACCOUNT
+            description: 总账科目
+            data_type: string
+          - name: TAX_CODE
+            description: 税码
+            data_type: string
+          - name: PURORG_ID
+            description: 采购组织
+            data_type: string
+          - name: PURGROUP_ID
+            description: 采购组
+            data_type: string
+          - name: JG_OBJ
+            description: 条件类型场景-实例号
+            data_type: string
+          - name: COST_CONTROL
+            description: 成本控制域
+            data_type: string
+          - name: MCC_OBJ
+            description: 主数据条件类型-实例号
+            data_type: integer
+          - name: STANDARD_QUANTITY
+            description: 标准数量
+            data_type: string
+          - name: JHHH_
+            description: 计划行号
+            data_type: integer
+          - name: BO_TAXRATE
+            description: 税率
+            data_type: string
+          - name: TSKC_
+            description: 特殊库存
+            data_type: integer
+          - name: JG_
+            description: 价格
+            data_type: string
+          - name: GNFW_
+            description: 功能范围
+            data_type: string
+          - name: XSDD_
+            description: 销售订单
+            data_type: string
+          - name: XSDDH_
+            description: 销售订单行
+            data_type: string
+          - name: WBS_
+            description: WBS
+            data_type: date
+          - name: XQJHQ_
+            description: 需求交货期
+            data_type: string
+          - name: WLLX_
+            description: 物料类型
+            data_type: string
+          - name: TSKCLX_
+            description: 特殊库存类型
+            data_type: string
+          - name: PGFW_
+            description: 评估范围
+            data_type: string
+          - name: PGL_
+            description: 评估类
+            data_type: string
+          - name: SLPG_
+            description: 数量评估
+            data_type: string
+          - name: JGPG_
+            description: 价格评估
+            data_type: string
+          - name: KJKMB_
+            description: 会计科目表
+            data_type: string
+          - name: HS_
+            description: 换算
+            data_type: date
+          - name: JYJHRQ_
+            description: 建议交货日期
+            data_type: integer
+          - name: TJLXJE_
+            description: 条件类型金额
+            data_type: string
+          - name: TJLXBFB_
+            description: 条件类型百分比
+            data_type: string
+          - name: XXJLHXM_
+            description: 信息记录行项目
+            data_type: integer
+          - name: YJHJE_
+            description: 已交货金额
+            data_type: integer
+          - name: SYSHJE_
+            description: 剩余收货金额
+            data_type: string
+          - name: KPSL_
+            description: 开票数量
+            data_type: integer
+          - name: KPJE_
+            description: 开票金额
+            data_type: integer
+          - name: YFDJ_
+            description: 预付定金
+            data_type: string
+          - name: DOC_NUM
+            description: 单据号码-子
+            data_type: string
+          - name: M_BELNR
+            description: 物料凭证号
+            data_type: string
+          - name: L_BELNR
+            description: 会计凭证号
+            data_type: string
+          - name: YEAR_
+            description: 年度
+            data_type: string
+          - name: DUR
+            description: 期间
+            data_type: string
+          - name: X_IDE
+            description: 冲销标识
+            data_type: string
+          - name: X_ITEM
+            description: 冲销行
+            data_type: string
+          - name: LOCATION_ID1
+            description: 库存地点1
+            data_type: string
+          - name: S_IA
+            description: 特殊库存评估
+            data_type: string
+          - name: CWENBEN_
+            description: 采购定单文本
+            data_type: string
+          - name: DELIVERY_COMPLETED
+            description: 交货已完成
+            data_type: string
+          - name: GR_ID
+            description: 收货凭证单据号
+            data_type: integer
+          - name: C_STOCK_QTY
+            description: 当前库存数量
+            data_type: integer
+          - name: U_STOCK_QTY
+            description: 更后库存数量
+            data_type: string
+          - name: BSI_CODE
+            description: 业务情形
+            data_type: integer
+          - name: QUA3_SHOW
+            description: 剩余收货数量_展示用
+            data_type: integer
+          - name: RE_QUANTITY
+            description: 已收货数量
+            data_type: string
+          - name: STATUS_
+            description: 状态
+            data_type: string
+      - name: BO_PLAN_MDM_GYS
+        source: BO_PLAN_MDM_GYS
+        description: 供应商主数据，维护供应商的基本信息（名称、简称）、地理位置、联系方式（电话、邮箱、网址）、财务科目等核心档案数据。是采购流程中供应商选择与评估的基础数据
+        ai_context: 同义词：供应商、Vendor、Supplier、供货商、供应商信息
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: parentId
+            description: 外键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: VENDOR_ID
+            description: 供应商编码
+            data_type: string
+          - name: VENDOR_D
+            description: 供应商描述
+            data_type: text
+          - name: VENDOR_ABB
+            description: 供应商简称
+            data_type: string
+          - name: ACCOUNT_ID
+            description: 账户组
+            data_type: string
+          - name: COUNTRY_ID
+            description: 国家
+            data_type: string
+          - name: CITY_ID
+            description: 城市
+            data_type: string
+          - name: CONTACTS
+            description: 联系人
+            data_type: string
+          - name: TL
+            description: 联系电话
+            data_type: text
+          - name: EMAIL
+            description: 邮箱
+            data_type: text
+          - name: VENDOR_ADD
+            description: 供应商地址
+            data_type: text
+          - name: CURRENCY_ID
+            description: 货币
+            data_type: string
+          - name: COMPANY_WEB
+            description: 公司网址
+            data_type: text
+          - name: FIXED_TEL
+            description: 固定电话
+            data_type: string
+          - name: FAX
+            description: 传真
+            data_type: string
+          - name: MAIL_ADD
+            description: 邮寄地址
+            data_type: text
+          - name: POSTAL_CODE
+            description: 邮政编码
+            data_type: string
+          - name: STATUS
+            description: 状态
+            data_type: string
+          - name: DELETE_FLAG
+            description: 删除
+            data_type: string
+          - name: LANGUAGE_ID
+            description: 语言
+            data_type: string
+          - name: CLBS
+            description: 处理标识
+            data_type: string
+          - name: BS_CODE
+            description: 业务场景编码
+            data_type: string
+          - name: BS_DESC
+            description: 业务场景描述
+            data_type: string
+          - name: BSI_CODE
+            description: 业务情形编码
+            data_type: string
+          - name: BSI_DESC
+            description: 业务情形描述
+            data_type: string
+          - name: DOC_NUM
+            description: 单据号码
+            data_type: string
+          - name: DOC_DATE
+            description: 单据日期
+            data_type: date
+          - name: DOC_STATUS
+            description: 单据状态
+            data_type: string
+          - name: USERNO
+            description: 制单人工号
+            data_type: string
+          - name: USERNAME
+            description: 制单人姓名
+            data_type: string
+          - name: USERID
+            description: 制单人域账号
+            data_type: string
+          - name: POSNR
+            description: 序号
+            data_type: string
+      - name: BO_PLAN_MDM_CGZZ
+        source: BO_PLAN_MDM_CGZZ
+        description: 采购组织主数据，定义负责企业采购活动的组织单位。每个采购组织归属于特定的公司代码和工厂，是为企业执行采购谈判、签订采购合同的法律实体单元
+        ai_context: 同义词：采购组织、Purchasing Organization、采购部门、采购单位
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: FACTORY_ID
+            description: 工厂
+            data_type: string
+          - name: PURORG_ID
+            description: 采购组织
+            data_type: string
+          - name: PURORG_D
+            description: 采购组织描述
+            data_type: text
+          - name: LANGUAGE_ID
+            description: 语言
+            data_type: string
+          - name: CLBS
+            description: 处理标识
+            data_type: string
+          - name: BUKRS
+            description: 公司代码
+            data_type: string
+          - name: BUTXT
+            description: 公司名称
+            data_type: text
+      - name: BO_PLAN_MDM_CGZ
+        source: BO_PLAN_MDM_CGZ
+        description: 采购组主数据，定义具体执行日常采购业务的采购员或采购小组。采购组是采购订单中的关键执行者维度，代表负责某类物料或某工厂采购业务的具体人员
+        ai_context: 同义词：采购组、Purchasing Group、采购员组、采购团队
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: FACTORY_ID
+            description: 工厂
+            data_type: string
+          - name: PURGROUP_ID
+            description: 采购组
+            data_type: string
+          - name: PURGROUP_D
+            description: 采购组描述
+            data_type: text
+          - name: EMAIL
+            description: 邮箱
+            data_type: text
+          - name: LANGUAGE_ID
+            description: 语言
+            data_type: string
+          - name: CLBS
+            description: 处理标识
+            data_type: string
+      - name: BO_PLAN_MDM_GC
+        source: BO_PLAN_MDM_GC
+        description: 工厂主数据，维护企业生产/运营的物理地点信息。工厂是采购、生产、库存管理的核心组织维度，每个工厂归属于一个公司代码，拥有独立的生产和存储能力
+        ai_context: 同义词：工厂、Plant、生产工厂、制造基地、生产基地
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: FACTORY_ID
+            description: 工厂
+            data_type: string
+          - name: COMPANY_ID
+            description: 所属公司
+            data_type: string
+          - name: FACTORY_D
+            description: 工厂名称
+            data_type: text
+          - name: FACTORY_ADD
+            description: 地址
+            data_type: text
+          - name: COUNTRY_ID
+            description: 国家
+            data_type: string
+          - name: CITY_ID
+            description: 城市
+            data_type: string
+          - name: DC
+            description: 邮政编码
+            data_type: string
+          - name: TL
+            description: 联系电话
+            data_type: text
+          - name: FAX
+            description: 传真
+            data_type: string
+          - name: EMAIL
+            description: 邮箱
+            data_type: text
+          - name: IDENT_ID
+            description: 日历
+            data_type: string
+          - name: TIMEZONE
+            description: 时区
+            data_type: string
+          - name: LANGUAGE_ID
+            description: 语言
+            data_type: string
+          - name: CLBS
+            description: 处理标识
+            data_type: string
+          - name: ASS_SOP
+            description: 评估范围
+            data_type: string
+          - name: PFCT
+            description: 利润中心
+            data_type: string
+      - name: BO_PLAN_MDM_KCDD
+        source: BO_PLAN_MDM_KCDD
+        description: 库存地点主数据，定义工厂内具体的物料存储位置。典型的库存地点类型包括原料库（存放采购到货的原材料）、半成品库（存放生产中间品）、成品库（存放待发货的产成品）
+        ai_context: 同义词：库存地点、Storage Location、仓库、库位、存储地点
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: FACTORY_ID
+            description: 工厂
+            data_type: string
+          - name: LOCATION_ID
+            description: 库存地点
+            data_type: string
+          - name: LOCATION_D
+            description: 库存地点描述
+            data_type: text
+          - name: WNO_ID
+            description: 仓库号
+            data_type: string
+          - name: TAG
+            description: 是否启用WM
+            data_type: string
+          - name: STATUS
+            description: 状态
+            data_type: string
+          - name: DELETE_FLAG
+            description: 删除
+            data_type: string
+          - name: LANGUAGE_ID
+            description: 语言
+            data_type: string
+          - name: BS_CODE
+            description: 业务场景ID
+            data_type: string
+          - name: BS_DESC
+            description: 业务场景描述
+            data_type: string
+          - name: BSI_CODE
+            description: 业务情形ID
+            data_type: string
+          - name: BSI_DESC
+            description: 业务情形描述
+            data_type: string
+          - name: DOC_NUMBER
+            description: 单据号码
+            data_type: string
+          - name: DOC_DATE
+            description: 单据日期
+            data_type: date
+          - name: DOC_STATUS
+            description: 单据状态
+            data_type: string
+          - name: ORGID
+            description: 部门ID
+            data_type: string
+          - name: ORGTEXT
+            description: 部门名称
+            data_type: string
+          - name: USERNO
+            description: 制单人工号
+            data_type: string
+          - name: USERNAME
+            description: 制单人姓名
+            data_type: string
+          - name: USERKEY
+            description: 制单人主键
+            data_type: string
+          - name: CLBS
+            description: 处理标识
+            data_type: string
+      - name: BO_PLAN_MDM_WL
+        source: BO_PLAN_MDM_WL
+        description: 物料主数据，维护企业采购、生产、库存管理涉及的物料基本信息。涵盖原材料（原油、钢管、化工品等）、设备配件（阀门、仪表、泵等）多种类型，是供应链管理的核心基础数据
+        ai_context: 同义词：物料、Material、产品、物品、物资、原材料
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: parentId
+            description: 外键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: MATERIAL_ID
+            description: 物料号
+            data_type: text
+          - name: MATERIAL_D
+            description: 物料描述
+            data_type: text
+          - name: LANGUAGE_ID
+            description: 语言类别
+            data_type: string
+          - name: MATTYPE_ID
+            description: 物料类型
+            data_type: string
+          - name: UNIT_ID
+            description: 基本计量单位
+            data_type: string
+          - name: PRDGROUP_ID
+            description: 产品组
+            data_type: string
+          - name: MATGROUP_ID
+            description: 物料组
+            data_type: string
+          - name: OLDMATERICAL
+            description: 旧物料号
+            data_type: text
+          - name: WEIGHT
+            description: 重量
+            data_type: integer
+          - name: WEIGHTUNIT
+            description: 重量单位
+            data_type: string
+          - name: VOLUME
+            description: 体积
+            data_type: string
+          - name: VOLUMEUNIT
+            description: 体积单位
+            data_type: string
+          - name: SIZE_
+            description: 尺寸
+            data_type: string
+          - name: SIZEUNIT
+            description: 尺寸单位
+            data_type: string
+          - name: DENSITY
+            description: 密度
+            data_type: string
+          - name: DENSITYUNIT
+            description: 密度单位
+            data_type: string
+          - name: SPEC1
+            description: 规格1
+            data_type: string
+          - name: SPEC2
+            description: 规格2
+            data_type: string
+          - name: SPEC3
+            description: 规格3
+            data_type: string
+          - name: SPEC4
+            description: 规格4
+            data_type: string
+          - name: SPEC5
+            description: 规格5
+            data_type: string
+          - name: SPEC6
+            description: 规格6
+            data_type: string
+          - name: MATSTATUS_ID
+            description: 物料状态
+            data_type: string
+          - name: DELETE_FLAG
+            description: 删除
+            data_type: string
+          - name: CLBS
+            description: 处理标识
+            data_type: string
+          - name: BS_CODE
+            description: 业务场景编码
+            data_type: string
+          - name: BS_DESC
+            description: 业务场景描述
+            data_type: string
+          - name: BSI_CODE
+            description: 业务情形编码
+            data_type: string
+          - name: BSI_DESC
+            description: 业务情形描述
+            data_type: string
+          - name: DOC_NUM
+            description: 单据号码
+            data_type: string
+          - name: DOC_DATE
+            description: 单据日期
+            data_type: date
+          - name: DOC_STATUS
+            description: 单据状态
+            data_type: string
+          - name: USERNO
+            description: 制单人工号
+            data_type: string
+          - name: USERNAME
+            description: 制单人姓名
+            data_type: string
+          - name: USERID
+            description: 制单人域账号
+            data_type: string
+      - name: BO_PLAN_MDM_JLDW
+        source: BO_PLAN_MDM_JLDW
+        description: 计量单位主数据，定义系统中使用的各种计量单位。包含国际通用单位（TO=吨、EA=个、M=米、L=升）和行业特定单位（CAN=罐、BOX=盒、PCS=件），是物料数量和价格的度量基准
+        ai_context: 同义词：计量单位、Unit of Measure、UOM、单位、度量单位
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: UNIT_ID
+            description: 计量单位
+            data_type: string
+          - name: UNIT_D
+            description: 计量单位描述
+            data_type: text
+          - name: UNIT_GROUP
+            description: 计量单位组
+            data_type: string
+          - name: LANGUAGE_ID
+            description: 语言
+            data_type: string
+          - name: CLBS
+            description: 处理标识
+            data_type: string
+      - name: BO_PLAN_MDM_HYQD
+        source: BO_PLAN_MDM_HYQD
+        description: "货源清单主数据，定义特定物料在特定工厂和采购组织下的合格供应源及其有效期限。是采购寻源的核心数据，管控\"向谁买\"的合规性，支持固定货源和MRP自动货源确定"
+        ai_context: 同义词：货源清单、Source List、供应源、采购货源、合格供应商清单
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: string
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: ITEM_
+            description: 序号
+            data_type: string
+          - name: MATERIAL_ID_WL
+            description: 物料编码
+            data_type: string
+          - name: MATERIAL_D
+            description: 物料描述
+            data_type: text
+          - name: FACTORY_ID
+            description: 工厂
+            data_type: string
+          - name: PURORG_ID
+            description: 采购组织
+            data_type: string
+          - name: VENDOR_ID
+            description: 供应商
+            data_type: string
+          - name: VENDOR_D
+            description: 供应商描述
+            data_type: string
+          - name: V_DATE_FROM
+            description: 有效期起
+            data_type: date
+          - name: V_DATE_TO
+            description: 有效期至
+            data_type: date
+          - name: FIXED_FLAG
+            description: "标识:固定的供应商"
+            data_type: string
+          - name: FROZEN_FLAG
+            description: 冻结的供货源
+            data_type: string
+          - name: MRP_FLAG
+            description: 是否MRP
+            data_type: string
+          - name: DELETE_FLAG
+            description: 删除
+            data_type: string
+          - name: STATUS
+            description: 状态
+            data_type: string
+      - name: BO_PLAN_MDM_XXJL
+        source: BO_PLAN_MDM_XXJL
+        description: 信息记录主数据，维护供应商与物料之间的对应关系，记录采购价格、最小起订量（MOQ）、标准交货周期（Lead Time）等核心采购条件。是采购定价和供应商评估的关键数据源
+        ai_context: 同义词：信息记录、Info Record、采购信息记录、价格主数据、采购价格档案
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: VENDOR_ID
+            description: 供应商编码
+            data_type: string
+          - name: VENDOR_D
+            description: 供应商名称
+            data_type: text
+          - name: PURORG_ID
+            description: 采购组织
+            data_type: string
+          - name: FACTORY_ID
+            description: 工厂
+            data_type: string
+          - name: INFO_TYPE
+            description: 信息记录类别
+            data_type: string
+          - name: PURGROUP_ID
+            description: 采购组
+            data_type: string
+          - name: PURGROUP_D
+            description: 采购组描述
+            data_type: text
+          - name: MATERIAL_ID
+            description: 物料编码
+            data_type: text
+          - name: MATERIAL_D
+            description: 物料描述
+            data_type: text
+          - name: NET_PRICE
+            description: 不含税净价
+            data_type: integer
+          - name: PRICE_UNIT
+            description: 价格单位
+            data_type: string
+          - name: UNIT_ID
+            description: 单位
+            data_type: string
+          - name: CURRENCY_ID
+            description: 币种
+            data_type: string
+          - name: TAX_ID
+            description: 税码
+            data_type: string
+          - name: MOQ
+            description: 最小订单量
+            data_type: integer
+          - name: STANDARD_QUANTITY
+            description: 标准数量
+            data_type: integer
+          - name: FLOW_STATUS
+            description: 审批状态
+            data_type: string
+          - name: LEAD_TIME
+            description: 计划交货时间（天）
+            data_type: integer
+          - name: VALID_FROM
+            description: 有效期起
+            data_type: date
+          - name: VALID_END
+            description: 有效期至
+            data_type: date
+          - name: STATUS
+            description: 状态
+            data_type: string
+          - name: DELETE_FLAG
+            description: 删除
+            data_type: string
+          - name: REMARK
+            description: 备注
+            data_type: text
+          - name: CLBS
+            description: 处理标识
+            data_type: string
+          - name: MATGROUP_ID
+            description: 物料组
+            data_type: string
+          - name: MATGROUP_D
+            description: 物料组描述
+            data_type: text
+          - name: BS_CODE
+            description: 业务场景编码
+            data_type: string
+          - name: BS_DESC
+            description: 业务场景描述
+            data_type: text
+          - name: BSI_CODE
+            description: 业务情形编码
+            data_type: string
+          - name: BSI_DESC
+            description: 业务情形描述
+            data_type: text
+          - name: DOC_NUM
+            description: 单据号码
+            data_type: string
+          - name: DOC_DATE
+            description: 单据日期
+            data_type: date
+          - name: DOC_STATUS
+            description: 单据状态
+            data_type: string
+          - name: USERNO
+            description: 制单人工号
+            data_type: string
+          - name: USERNAME
+            description: 制单人姓名
+            data_type: string
+          - name: USERID
+            description: 制单人域账号
+            data_type: string
+          - name: TL
+            description: 联系电话
+            data_type: string
+          - name: FACTORY_D
+            description: 工厂描述
+            data_type: text
+          - name: PURORG_D
+            description: 采购组织描述
+            data_type: text
+      - name: BO_PLAN_MDM_XXJLH
+        source: BO_PLAN_MDM_XXJLH
+        description: 信息记录行明细，在信息记录主表基础上进一步扩展，记录供应商-物料组合的详细采购条件。包含交货容差（欠交/超交百分比）、收货与发票校验控制标识（GR/IV）等执行层面的精细化管理参数
+        ai_context: 同义词：信息记录明细、Info Record Detail、价格行项目、采购条件明细
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: VENDOR_ID
+            description: 供应商编码
+            data_type: string
+          - name: VENDOR_D
+            description: 供应商名称
+            data_type: text
+          - name: PURORG_ID
+            description: 采购组织
+            data_type: string
+          - name: FACTORY_ID
+            description: 工厂
+            data_type: string
+          - name: INFO_TYPE
+            description: 信息记录类别
+            data_type: string
+          - name: PURGROUP_ID
+            description: 采购组
+            data_type: string
+          - name: PURGROUP_D
+            description: 采购组描述
+            data_type: text
+          - name: MATERIAL_ID
+            description: 物料编码
+            data_type: text
+          - name: MATERIAL_D
+            description: 物料描述
+            data_type: text
+          - name: NET_PRICE
+            description: 不含税净价
+            data_type: integer
+          - name: PRICE_UNIT
+            description: 价格单位
+            data_type: string
+          - name: UNIT_ID
+            description: 单位
+            data_type: string
+          - name: CURRENCY_ID
+            description: 币种
+            data_type: string
+          - name: TAX_ID
+            description: 税码
+            data_type: string
+          - name: MOQ
+            description: 最小订单量
+            data_type: integer
+          - name: STANDARD_QUANTITY
+            description: 标准数量
+            data_type: integer
+          - name: FLOW_STATUS
+            description: 审批状态
+            data_type: string
+          - name: LEAD_TIME
+            description: 计划交货时间（天）
+            data_type: integer
+          - name: VALID_FROM
+            description: 有效期起
+            data_type: date
+          - name: VALID_END
+            description: 有效期至
+            data_type: date
+          - name: STATUS
+            description: 状态
+            data_type: string
+          - name: DELETE_FLAG
+            description: 删除
+            data_type: string
+          - name: REMARK
+            description: 备注
+            data_type: text
+          - name: CLBS
+            description: 处理标识
+            data_type: string
+          - name: MATGROUP_ID
+            description: 物料组
+            data_type: string
+          - name: MATGROUP_D
+            description: 物料组描述
+            data_type: text
+          - name: BS_CODE
+            description: 业务场景编码
+            data_type: string
+          - name: BS_DESC
+            description: 业务场景描述
+            data_type: text
+          - name: BSI_CODE
+            description: 业务情形编码
+            data_type: string
+          - name: BSI_DESC
+            description: 业务情形描述
+            data_type: text
+          - name: DOC_NUM
+            description: 单据号码
+            data_type: string
+          - name: DOC_DATE
+            description: 单据日期
+            data_type: date
+          - name: DOC_STATUS
+            description: 单据状态
+            data_type: string
+          - name: USERNO
+            description: 制单人工号
+            data_type: string
+          - name: USERNAME
+            description: 制单人姓名
+            data_type: string
+          - name: USERID
+            description: 制单人域账号
+            data_type: string
+          - name: TL
+            description: 联系电话
+            data_type: string
+          - name: NO_DELIV_UNDE_CONDI
+            description: 极限不发货
+            data_type: integer
+          - name: EXCESSIVE_SHIPMENT_LIMIT
+            description: 极限过度发货
+            data_type: integer
+          - name: GR_IV
+            description: 基于收获的发票校验
+            data_type: string
+          - name: UNLIMITED_OVER_DELIVERY
+            description: 无限制过量交货
+            data_type: string
+          - name: BC_CODE
+            description: 业务类型编码
+            data_type: string
+          - name: BC_DESC
+            description: 业务类型描述
+            data_type: string
+          - name: parentId
+            description: 外键
+            data_type: string
+          - name: FACTORY_D
+            description: 工厂描述
+            data_type: text
+          - name: PURORG_D
+            description: 采购组织描述
+            data_type: text
+          - name: JG_OBJ
+            description: 实例号
+            data_type: string
+          - name: MATERIAL_ID_1
+            description: 信息记录条件类型（停用）
+            data_type: string
+          - name: MATERIAL_D_1
+            description: 信息记录条件名称（停用）
+            data_type: string
+      - name: BO_PLAN_MDM_XXJLTJ
+        source: BO_PLAN_MDM_XXJLTJ
+        description: 信息记录条件表，记录信息记录的附加价格条件，如阶梯价格、折扣、附加费以及国际贸易条款（Incoterms如FOB/CIF等）。通过 PARENT_ID_ 关联到信息记录行明细，支持复杂定价场景
+        ai_context: 同义词：信息记录条件、价格条件、贸易条款、Info Record Conditions、国际贸易术语
+        fields:
+          - name: id
+            description: 主键
+            data_type: string
+          - name: parentId
+            description: 外键
+            data_type: string
+          - name: tenantId
+            description: 租户ID
+            data_type: string
+          - name: ip
+            description: IP地址
+            data_type: string
+          - name: createBy
+            description: 创建人
+            data_type: string
+          - name: createTime
+            description: 创建时间
+            data_type: date
+          - name: updateBy
+            description: 更新人
+            data_type: string
+          - name: updateTime
+            description: 更新时间
+            data_type: date
+          - name: MATERIAL_ID_1
+            description: 类型
+            data_type: string
+          - name: MATERIAL_D_1
+            description: 名称
+            data_type: text
+          - name: BC_CODE
+            description: 业务类型编码
+            data_type: string
+          - name: BC_DESC
+            description: 业务类型名称
+            data_type: string
+          - name: CLBS
+            description: 处理标识
+            data_type: string
+          - name: POSNR
+            description: 序号
+            data_type: string
+          - name: DOC_NUM
+            description: 单据号码
+            data_type: string
+          - name: INTERNATIONAL_TRADE_TERMS
+            description: 国际贸易条款
+            data_type: text
+          - name: INTERNATIONAL_TRADE_TERMS_D
+            description: 国际贸易条款位置1
+            data_type: text
+          - name: INTERN_TRADE_TERMS_D_1
+            description: 国际贸易条款位置1（其他）
+            data_type: text
+          - name: AMOUNT
+            description: 金额
+            data_type: integer
+          - name: CURRENCY_ID
+            description: 币种
+            data_type: string
+          - name: JG_OBJ
+            description: 实例号
+            data_type: string
+    relationships:
+      - name: pr_head_pr_info
+        description: 采购申请单与物料明细为一对多关系，即单张申请单可包含多项待采购物料行项目。
+        ai_context: 采购申请单与物料明细为一对多关系，即单张申请单可包含多项待采购物料行项目。
+        from: BO_PLAN_PR_HEAD
+        to: BO_PLAN_PR_INFO
+        from_columns: [PR_ID]
+        to_columns: [PR_ID]
+        cardinality: ONE_TO_MANY
+      - name: pr_info_mdm_wl
+        description: 采购申请明细行与具体采购物料为一对一绑定关系，即每一行明细仅对应且唯一确定一种物料。
+        ai_context: 解析或生成明细时，应校验“一行一物”约束；若用户输入包含多物料，需自动拆分为多条明细记录，禁止在单行内聚合多个物料信息。
+        from: BO_PLAN_PR_INFO
+        to: BO_PLAN_MDM_WL
+        from_columns: [MATERIAL_ID]
+        to_columns: [MATERIAL_ID]
+        cardinality: ONE_TO_ONE
+      - name: pr_info_mdm_gc
+        description: 采购申请明细行需明确指定收货/执行工厂，以确定物料的交付地点、库存归属及对应的工厂级采购策略。
+        ai_context: 创建或查询明细时，若用户未提供工厂信息，应主动追问或根据成本中心/物料默认值智能推荐；同一申请单内不同明细行可关联不同工厂，需支持按工厂分组展示与校验。
+        from: BO_PLAN_PR_INFO
+        to: BO_PLAN_MDM_GC
+        from_columns: [FACTORY_ID]
+        to_columns: [FACTORY_ID]
+        cardinality: ONE_TO_ONE
+      - name: pr_info_mdm_kcdd
+        description: 采购申请明细行需指定具体的库存地点，以精确界定物料入库的物理仓位、库区归属及后续的仓储作业策略。
+        ai_context: 处理明细时，库存地点必须与所属工厂联动校验，禁止跨工厂引用库位；若用户仅提供工厂未指定库位，应根据物料类型或默认收货规则智能推荐，并提示用户确认，避免入库时因库位缺失导致流程阻塞。
+        from: BO_PLAN_PR_INFO
+        to: BO_PLAN_MDM_KCDD
+        from_columns: [LOCATION_ID]
+        to_columns: [LOCATION_ID]
+        cardinality: ONE_TO_ONE
+      - name: pr_info_mdm_gys
+        description: 采购申请明细行可指定建议/首选供应商，用于表达需求部门对货源的倾向性意见，或作为后续寻源、询价及订单转换的参考依据。
+        ai_context: 采购申请明细行可指定建议/首选供应商，用于表达需求部门对货源的倾向性意见，或作为后续寻源、询价及订单转换的参考依据。
+        from: BO_PLAN_PR_INFO
+        to: BO_PLAN_MDM_GYS
+        from_columns: [VENDOR_ID]
+        to_columns: [VENDOR_ID]
+        cardinality: MANY_TO_ONE
+      - name: pur_purorder_head_mdm_cgzz
+        description: 多个采购订单可归属于同一个采购组织。
+        ai_context: 多个采购订单可归属于同一个采购组织。
+        from: PUR_PURORDER_HEAD
+        to: BO_PLAN_MDM_CGZZ
+        from_columns: [PURORG_ID]
+        to_columns: [PURORG_ID]
+        cardinality: MANY_TO_ONE
+      - name: pur_purorder_head_mdm_cgz
+        description: 多个采购订单可归属于同一个采购组。
+        ai_context: 多个采购订单可归属于同一个采购组。
+        from: PUR_PURORDER_HEAD
+        to: BO_PLAN_MDM_CGZ
+        from_columns: [PURGROUP_ID]
+        to_columns: [PURGROUP_ID]
+        cardinality: MANY_TO_ONE
+      - name: pur_purorder_head_pur_purorder_item
+        description: 一个采购订单可包含多个行项目明细。
+        ai_context: AI语义词：采购订单、采购订单行项目、PO、PO Line Item
+        from: PUR_PURORDER_HEAD
+        to: PUR_PURORDER_ITEM
+        from_columns: [parentId]
+        to_columns: [parentId]
+        cardinality: ONE_TO_MANY
+      - name: receipt_associated_po
+        description: 该动作是仓储入库与采购履约衔接的核心操作，用于将实物到货信息（收货单/入库单）与上游采购订单（PO）建立精确的明细级绑定关系。系统依据关联结果自动核销PO对应行的“未交数量”，更新订单履约状态（如部分收货、已关闭），并触发后续质检、上架及三单匹配（PO-收货-发票）流程。关联时需校验物料编码、供应商、收货组织的一致性。
+        ai_context: 同义词：收货单关联PO、入库单绑定采购订单、收货核销订单、GR-PO Matching。
+        from: BO_PUR_RECE
+        to: PUR_PURORDER_HEAD
+        from_columns: [PO_ID]
+        to_columns: [PO_ID]
+        cardinality: ONE_TO_ONE
+      - name: pur_rece_pur_rece01
+        description: 该动作是仓储与库存管理系统的底层数据构建操作，用于将货物移动凭证的主表（记录业务类型、过账日期、制单人等头信息）与字表（记录物料、数量、批次、库位等明细行）建立强制的一对多绑定关系。在ERP或WMS中，货物移动凭证必须保持“主子一体”的完整性才能生效，此关联动作确保每一笔库存变动都有明确的业务归属，同时触发库存台账更新、财务科目记账及上下游单据（如PO、生产订单）的状态回写。
+        ai_context: 同义词：MM凭证主子关联、库存凭证头行绑定、物料凭证明细挂载、Goods Movement Header-Item Linking。
+        from: BO_PUR_RECE
+        to: BO_PUR_RECE01
+        from_columns: [XINGXIANGMU]
+        to_columns: [id]
+        cardinality: ONE_TO_MANY
+    behavior:
+      actions:
+        - id: query_purorder_item
+          title: 查询采购订单行项目列表
+          description: 
+          kind: query
+          operation_type: list
+          entity_name: PUR_PURORDER_HEAD
+          io_schema:
+            input_schema: {"fields":[{"code":"CREATE_BY_","description":"创建人","defaultValue":"","paramName":"创建人","paramType":"STRING","required":true,"sortOrder":10}]}
+            output_schema: {"fields":[]}
+        - id: CREATE_PURCHASE_REQUISITION
+          title: 创建采购申请明细
+          description: 向已存在的采购申请（PR）中添加或追加物料/服务明细行项目。适用于用户在创建完申请单头信息后，录入具体要采购的物品名称、规格型号、数量、预估单价、计量单位及收货地址等详细内容的场景。支持批量添加多条明细。注意：调用此动作前必须确保已存在有效的采购申请单号；若用户直接提供物料信息但未创建过头信息，应先引导创建基础信息或自动串联头信息创建流程。
+          ai_context: 同义词：新增采购申请行、添加PR明细、录入请购明细、维护申请条目。
+示例：“把刚才那个申请的明细补一下：服务器2台、交换机4台、网线50米” → 批量添加3行，继承已有PR单号
+
+          kind: command
+          operation_type: upsert
+          entity_name: BO_PLAN_PR_INFO
+          io_schema:
+            input_schema: {"fields":[{"code":"prId","description":"采购申请号","defaultValue":"","paramName":"采购申请号","paramType":"STRING","required":true,"sortOrder":10,"id":"input-0"},{"code":"asscategoryId","description":"科目分配类别","defaultValue":"","paramName":"科目分配类别","paramType":"STRING","required":true,"sortOrder":20,"id":"input-1"},{"code":"materialD","description":"物料描述","defaultValue":"","paramName":"物料描述","paramType":"STRING","required":true,"sortOrder":30,"id":"input-2"},{"code":"companyName","description":"公司名称","defaultValue":"","paramName":"公司名称","paramType":"STRING","required":true,"sortOrder":40,"id":"input-3"},{"code":"factoryName","description":"需求工厂名称","defaultValue":"","paramName":"需求工厂名称","paramType":"STRING","required":true,"sortOrder":50,"id":"input-4"},{"code":"locationD","description":"库存地点","defaultValue":"","paramName":"库存地点","paramType":"STRING","required":true,"sortOrder":60,"id":"input-5"},{"code":"vendorD","description":"供应商","defaultValue":"","paramName":"供应商","paramType":"STRING","required":true,"sortOrder":70,"id":"input-6"},{"code":"baseQty","description":"数量","defaultValue":"","paramName":"数量","paramType":"INTEGER","required":true,"sortOrder":80,"id":"input-7"},{"code":"PR_DELIVERY_DATE","description":"需求交货日期","defaultValue":"","paramName":"需求交货日期","paramType":"DATETIME","required":false,"sortOrder":90,"id":"input-8"}]}
+            output_schema: {"fields":[{"code":"prItem","description":"采购申请行项目ID","paramName":"采购申请行项目ID","paramType":"STRING","sortOrder":10,"id":"output-0"},{"code":"prStatus","description":"采购状态","paramName":"采购状态","paramType":"STRING","sortOrder":20,"id":"output-1"}]}
+        - id: QUERY_OPEN_PURCHASE_REQUISITIONS
+          title: 查询采购申请列表
+          description: 检索并返回采购申请（PR）列表数据。支持多维度组合筛选及分页查询。适用于用户追踪内部采购需求审批进度、查找历史申请记录、核对预算占用情况、统计部门采购需求量或导出需求报表等场景。注意：此动作仅返回申请单头及摘要信息；若用户明确要求查看某笔申请的完整物料明细、审批流转记录或关联的下游采购订单，应进一步调用“查询采购申请详情”动作。
+          ai_context: 同义词：PR、请购单、采购需求、购买申请、用料申请、报购单	。
+示例：“查一下我上个月提交的所有采购申请” → 提取：requester="current_user", date_range=[2026-06-01, 2026-06-30]
+“研发部有哪些PR还在审批中？” → 提取：department="研发部", status="PENDING_APPROVAL"
+“帮我找下 PR-2026-00321” → 提取：pr_number="PR-2026-00321"，返回列表后主动询问是否查看详情
+“最近有没有被驳回的采购需求？” → 提取：status="REJECTED"
+          kind: query
+          operation_type: list
+          entity_name: BO_PLAN_PR_INFO
+          io_schema:
+            input_schema: {"fields":[{"code":"prId","description":"采购申请号","defaultValue":"","paramName":"采购申请号","paramType":"STRING","required":false,"sortOrder":10,"id":"input-0"}]}
+            output_schema: {"fields":[{"code":"prId","description":"采购申请号","paramName":"采购申请号","paramType":"STRING","sortOrder":10,"id":"output-0"},{"code":"prType","description":"采购申请类型","paramName":"采购申请类型","paramType":"STRING","sortOrder":20,"id":"output-1"},{"code":"materialD","description":"物料描述","paramName":"物料描述","paramType":"STRING","sortOrder":30,"id":"output-2"},{"code":"vendorD","description":"供应商","paramName":"供应商","paramType":"STRING","sortOrder":40,"id":"output-3"}]}
+        - id: CREATE_PURCHASE_ORDER
+          title: 创建采购订单
+          description: 创建采购订单（Purchase Order, PO）的抬头/头信息草稿。适用于采购申请审批通过后正式向供应商下单、或紧急采购直接创建对外订单的场景。支持录入供应商、采购组织、公司代码、货币、付款条款、交货地址及订单类型等全局性基础信息。注意：此动作仅生成订单抬头框架，不包含具体物料明细行；调用前通常需关联已批准的采购申请单号或确认用户具备直接下单权限。若用户仅提供模糊购买意向而未明确供应商等关键要
+          ai_context: 同义词：PO、订购单、进货单、买货单、合同、下单	。
+示例：“把 PR-2026-00456 转成采购订单” → 提取：ref_pr="PR-2026-00456"，自动继承抬头信息并创建
+
+          kind: command
+          operation_type: upsert
+          entity_name: PUR_PURORDER_HEAD
+          io_schema:
+            input_schema: {"fields":[{"code":"cgpzlb_","description":"采购凭证类型","defaultValue":"","paramName":"采购凭证类型","paramType":"STRING","required":true,"sortOrder":10,"id":"input-0"},{"code":"documentDate","description":"凭证日期","defaultValue":"","paramName":"凭证日期","paramType":"DATETIME","required":true,"sortOrder":20,"id":"input-1"},{"code":"purgroupD","description":"采购组","defaultValue":"","paramName":"采购组","paramType":"STRING","required":true,"sortOrder":30,"id":"input-2"},{"code":"cgzzms_","description":"采购组织","defaultValue":"","paramName":"采购组织","paramType":"STRING","required":true,"sortOrder":40,"id":"input-3"},{"code":"vendorD","description":"供应商","defaultValue":"","paramName":"供应商","paramType":"STRING","required":true,"sortOrder":50,"id":"input-4"}]}
+            output_schema: {"fields":[{"code":"poId","description":"采购订单编号","paramName":"采购订单编号","paramType":"STRING","sortOrder":10,"id":"output-0"}]}
+        - id: CREATE_PUR_PURORDER_ITEM
+          title: 创建采购订单行项目
+          description: "\"创建采购订单行项目\"是指在已存在或正在新建的采购订单（PO Header）下，新增一条具体的物料或服务采购明细记录的操作。该行项目承载了采购的核心执行信息，是采购订单从\"头部框架\"落地为\"可执行指令\"的最小业务单元。"
+          ai_context: AI 语义词：采购订单行项目、PO Line Item、PO Detail、订单明细、行条目。
+          kind: command
+          operation_type: upsert
+          entity_name: PUR_PURORDER_ITEM
+          io_schema:
+            input_schema: {"fields":[{"code":"asscategoryId","description":"科目分配类别","defaultValue":"","paramName":"科目分配类别","paramType":"STRING","required":true,"sortOrder":10,"id":"input-0"},{"code":"materialD","description":"物料","defaultValue":"","paramName":"物料","paramType":"STRING","required":true,"sortOrder":20,"id":"input-1"},{"code":"factoryName","description":"工厂名称","defaultValue":"","paramName":"工厂名称","paramType":"STRING","required":true,"sortOrder":30,"id":"input-2"},{"code":"locationD","description":"库存地点","defaultValue":"","paramName":"库存地点","paramType":"STRING","required":true,"sortOrder":40,"id":"input-3"},{"code":"quantityO","description":"数量（采购）","defaultValue":"","paramName":"数量（采购）","paramType":"INTEGER","required":true,"sortOrder":50,"id":"input-4"},{"code":"unitO","description":"采购定单单位","defaultValue":"","paramName":"采购定单单位","paramType":"STRING","required":true,"sortOrder":60,"id":"input-5"},{"code":"deliveryDate","description":"需求交货期","defaultValue":"","paramName":"需求交货期","paramType":"DATE","required":true,"sortOrder":70,"id":"input-6"}]}
+            output_schema: {"fields":[{"code":"poItem","description":"采购订单行项目ID","paramName":"采购订单行项目ID","paramType":"STRING","sortOrder":10}]}
+        - id: SEARCH_PURORDER_LIST
+          title: 查询采购订单列表
+          description: 检索并返回采购订单（PO）列表数据。支持多维度组合筛选及分页查询。适用于用户追踪采购进度、查找特定订单、核对历史交易记录、统计订单数量或导出采购报表等场景。注意：此动作仅返回列表摘要信息；若用户明确要求查看某笔订单的完整明细、审批流或收货详情，应进一步调用“查询采购订单详情”动作。
+          ai_context: 同义词：PO、PO单、订购单、进货单、买货单、合同单	。
+示例：有哪些采购单还在审批中？” → 提取：status="PENDING_APPROVAL"
+“帮我找下 PO-2026-00789” → 提取：po_number="PO-2026-00789"，返回列表后主动询问是否查看详情
+“最近有没有被取消的订单？” → 提取：status="CANCELLED", date_range="last_30_days"
+“本周下了多少采购单？” → 调用列表接口获取总数，或由 AI 对返回结果进行 count 聚合
+          kind: query
+          operation_type: list
+          entity_name: PUR_PURORDER_HEAD
+          io_schema:
+            input_schema: {"fields":[{"code":"prId","description":"采购计划编码","defaultValue":"","paramName":"采购计划编码","paramType":"STRING","required":false,"sortOrder":10,"id":"input-0"},{"code":"cgzzms_","description":"采购组织","defaultValue":"","paramName":"采购组织","paramType":"STRING","required":false,"sortOrder":30,"id":"input-2"}]}
+            output_schema: {"fields":[]}
+        - id: CREATE_PR_HEAD
+          title: 创建采购申请
+          description: 创建或初始化采购申请（Purchase Requisition, PR）的基础信息草稿。适用于用户在正式下单前发起内部采购需求、登记预算占位或提交审批前置信息的场景。注意：此动作仅创建申请单头信息，不包含具体物料明细行；若用户直接要求“买东西”但未提供完整参数，应优先调用此动作引导用户补全基础信息。
+          ai_context: 同义词：PR、请购单、采购需求、购买申请、报销前置申请、用料申请	
+          kind: command
+          operation_type: upsert
+          entity_name: BO_PLAN_PR_HEAD
+          io_schema:
+            input_schema: {"fields":[{"code":"prType","description":"采购申请类型","defaultValue":"","paramName":"采购申请类型","paramType":"STRING","required":false,"sortOrder":10,"id":"input-0"}]}
+            output_schema: {"fields":[{"code":"prId","description":"采购申请号","paramName":"采购申请号","paramType":"STRING","sortOrder":10,"id":"output-0"}]}
+        - id: QUERY_PR_DETAILS
+          title: 查询采购申请详情
+          description: 该动作用于根据采购申请单号、关键字或筛选条件，检索并展示某笔采购申请的完整结构化信息。返回内容通常包括单据头信息（申请人、申请部门、申请日期、审批状态、币种等）以及明细行信息（物料编码、物料名称、规格型号、数量、单价、金额、需求日期、收货组织、费用承担项目/部门等）。支持查看关联的审批流转记录、附件及下游单据（如采购订单、入库单）的执行进度。
+          ai_context: 同义词：查看PR详情、获取采购申请信息、检索请购单明细、读取申请单。
+          kind: query
+          operation_type: search
+          entity_name: BO_PLAN_PR_HEAD
+          io_schema:
+            input_schema: {"fields":[{"code":"prId","description":"采购申请号","defaultValue":"","paramName":"采购申请号","paramType":"STRING","required":true,"sortOrder":10}]}
+            output_schema: {"fields":[]}
+        - id: DELETE_PR
+          title: 取消采购申请
+          description: 该动作用于将已创建但尚未完全执行完毕的采购申请单（PR）置为“已取消/已作废”状态，使其失去后续业务流转效力。执行后，系统将终止该单据的审批流程、释放已占用的预算额度、关闭未处理的明细行，并阻断其向下游采购订单、收货单等单据的转换。该操作通常需记录取消原因、操作人及时间戳，部分系统支持对已部分执行的申请进行“剩余数量取消”而非整单作废。
+          ai_context: 同义词：作废采购申请、撤销PR、终止请购单、取消申请单。
+          kind: command
+          operation_type: delete
+          entity_name: BO_PLAN_PR_HEAD
+          io_schema:
+            input_schema: {"fields":[{"code":"prId","description":"采购申请号","defaultValue":"","paramName":"采购申请号","paramType":"STRING","required":true,"sortOrder":10}]}
+            output_schema: {"fields":[]}
+        - id: APPROVAL_PR
+          title: 审批采购申请
+          description: 该动作用于授权人员对企业内部提交的采购申请单（PR）进行审核决策，是采购合规控制与预算执行的关键卡点。操作包括“同意”“驳回”“转审/加签”等分支，系统将根据审批结果驱动单据状态流转：通过后进入下一审批节点或自动生成下游采购订单；驳回后退回申请人修改或终止流程；转审则将审批权移交至指定人员。审批过程需记录审批意见、时间戳及操作人信息，部分系统支持基于金额、物料类别、部门等条件的自动路由与批量审批。
+          ai_context: 同义词：审核采购申请、批复PR、签署请购单、处理审批任务。
+          kind: command
+          operation_type: update
+          entity_name: BO_PLAN_PR_HEAD
+          io_schema:
+            input_schema: {"fields":[{"code":"prId","description":"采购申请号","defaultValue":"","paramName":"采购申请号","paramType":"STRING","required":true,"sortOrder":10}]}
+            output_schema: {"fields":[]}
+        - id: PR_TO_PO
+          title: 采购申请转采购订单
+          description: 该动作是采购到付款（P2P）流程中的核心执行环节，用于将已审批通过的采购申请（PR）转化为具有法律效力的对外采购订单（PO）。系统会自动继承原申请单中的物料、数量、价格、供应商及收货信息等关键数据，并根据业务规则进行订单拆分或合并（如按供应商归集、按交货日期分批）。转换过程中会校验预算剩余可用额度、供应商准入状态及合同有效期，成功后建立PR与PO的上下游关联关系等。
+          ai_context: 同义词：PR转PO、生成采购订单、下达采购订单、创建PO（基于PR）
+          kind: command
+          operation_type: upsert
+          entity_name: PUR_PURORDER_HEAD
+          io_schema:
+            input_schema: {"fields":[{"code":"prId","description":"采购申请号","defaultValue":"","paramName":"采购申请号","paramType":"STRING","required":true,"sortOrder":10}]}
+            output_schema: {"fields":[]}
+        - id: QUERY_PO_DETAILS
+          title: 查询采购订单详情
+          description: 该动作用于检索并展示单笔采购订单（PO）的全量结构化信息，是采购执行、履约跟踪及业财核对的基础只读操作。返回内容通常涵盖订单头信息（单号、供应商、币种、税率、付款条款）、明细行（物料编码、规格、数量、单价、交货日期、收货组织）、关联单据（上游PR号、下游入库单/发票号）、审批与变更历史、以及当前履约状态（如未交、部分收货、已关闭）。该操作不涉及任何数据修改，仅作为业务决策、异常排查及跨部门协同的信
+          ai_context: 同义词：查看PO详情、获取采购订单信息、检索订单明细、读取PO数据。
+          kind: query
+          operation_type: search
+          entity_name: PUR_PURORDER_HEAD
+          io_schema:
+            input_schema: {"fields":[{"code":"poId","description":"采购订单编号","defaultValue":"","paramName":"采购订单编号","paramType":"STRING","required":true,"sortOrder":10}]}
+            output_schema: {"fields":[]}
+        - id: APPROVAL_PO
+          title: 审批采购订单
+          description: 该动作用于授权人员对已生成的采购订单（PO）进行合规性、准确性及商务条款的最终审核，是采购订单对外生效前的关键控制点。与“审批采购申请”侧重于内部需求合理性不同，本动作聚焦于对外契约的严谨性，包括核对供应商信息、价格与合同一致性、付款条款、交货条件、税率及法律条款等。审批通过后，PO状态变更为“已批准/已生效”，系统自动触发订单发送（邮件/EDI/SRM门户）；驳回则退回采购员修改或终止下单。
+          ai_context: 同义词：审核采购订单、批复PO、签署采购合同、处理PO审批任务。
+          kind: command
+          operation_type: upsert
+          entity_name: PUR_PURORDER_HEAD
+          io_schema:
+            input_schema: {"fields":[{"code":"poId","description":"采购订单编号","defaultValue":"","paramName":"采购订单编号","paramType":"STRING","required":true,"sortOrder":10,"id":"input-0"}]}
+            output_schema: {"fields":[{"code":"flowStatus","description":"审批状态","paramName":"审批状态","paramType":"STRING","sortOrder":10},{"code":"documentStatus","description":"采购订单状态","paramName":"采购订单状态","paramType":"STRING","sortOrder":20}]}
