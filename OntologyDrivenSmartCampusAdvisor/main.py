@@ -14,11 +14,11 @@ from knowledge_base import build_knowledge_base
 from ontology import ENTITY_SCHEMAS, RELATION_SCHEMAS
 from rules import RuleEngine, build_default_rules
 from advisor import (
-    action_check_course,
-    action_career_advice,
-    action_recommend_courses,
-    action_skill_gap_plan,
-    action_student_profile,
+    answer_check_course,
+    answer_career_advice,
+    answer_recommend_courses,
+    answer_skill_gap_plan,
+    answer_student_profile,
 )
 
 
@@ -69,27 +69,27 @@ def main() -> None:
 
     # Q1: Alice 下学期该修什么课？
     banner("Q1  用户: \"Alice 下学期该修什么课？\"")
-    print(action_recommend_courses(kg, engine, "Alice"))
+    print(answer_recommend_courses(kg, engine, "student:alice")["answer"])
 
     # Q2: Alice 适合什么职业方向？
     banner("Q2  用户: \"Alice 适合什么职业方向？\"")
-    print(action_career_advice(kg, engine, "Alice"))
+    print(answer_career_advice(kg, engine, "student:alice")["answer"])
 
     # Q3: Carol 想做数据科学家，还差什么？怎么补？
     banner("Q3  用户: \"Carol 想成为数据科学家，还差什么？该怎么补？\"")
-    print(action_skill_gap_plan(kg, engine, "Carol", "数据科学家"))
+    print(answer_skill_gap_plan(kg, engine, "student:carol", "career:ds")["answer"])
 
     # Q4: Bob 现在能直接选 ML401 机器学习吗？
     banner("Q4  用户: \"Bob 现在能直接选 ML401 机器学习吗？\"")
-    print(action_check_course(kg, engine, "Bob", "ML401"))
+    print(answer_check_course(kg, engine, "student:bob", "course:ml401")["answer"])
 
     # Q5: Bob 想做数据科学家，补齐方案
     banner("Q5  用户: \"Bob 想做数据科学家，给我一个补齐方案\"")
-    print(action_skill_gap_plan(kg, engine, "Bob", "数据科学家"))
+    print(answer_skill_gap_plan(kg, engine, "student:bob", "career:ds")["answer"])
 
     # Q6: 综合画像
     banner("Q6  用户: \"给我看看 Carol 的完整画像\"")
-    print(action_student_profile(kg, engine, "Carol"))
+    print(answer_student_profile(kg, engine, "student:carol")["answer"])
 
     # ---------- 收尾 ---------- #
     banner("演示完成")
